@@ -22,14 +22,15 @@ El alcance funcional se desarrollará de forma incremental. Este documento difer
 - Campo `mustChangePassword` inicializado en `true` para el futuro cambio obligatorio de contraseña.
 - Puerto EmailService y adaptador ResendEmailService integrados; el envío real de credenciales iniciales ya fue validado de forma controlada.
 - Login backend mediante email y contraseña, con JWT de acceso, middleware Bearer reutilizable y endpoint técnico `GET /auth/me`.
+- Cambio de contraseña autenticado, con verificación de la contraseña actual, nuevo hash y transición de `mustChangePassword` a `false`.
 
-Login, autenticación, rutas ciclistas, integración meteorológica, mapas, GPX, IA y despliegue siguen pendientes.
+Rutas ciclistas, integración meteorológica, mapas, GPX, IA y despliegue siguen pendientes.
 
 ## Planificado / pendiente
 
 ### Requisitos funcionales
 
-- **RF-001 — Gestión de usuarios:** el registro inicial recibe nombre, apellidos y email; genera una contraseña temporal segura, almacena únicamente su hash y marca el cambio de contraseña como obligatorio. El login backend valida email y contraseña y emite un JWT de acceso. El cambio obligatorio de contraseña, perfiles y preferencias siguen pendientes. La validación real local del login queda condicionada a configurar `JWT_SECRET`.
+- **RF-001 — Gestión de usuarios:** el registro inicial recibe nombre, apellidos y email; genera una contraseña temporal segura, almacena únicamente su hash y marca el cambio de contraseña como obligatorio. El login backend valida email y contraseña y emite un JWT de acceso. El cambio de contraseña autenticado exige la contraseña actual, aplica una política mínima de 12 caracteres con letra y número, y desactiva `mustChangePassword`. Recuperación de contraseña, perfiles y preferencias siguen pendientes.
 - **RF-002 — Planificación de rutas:** considerar punto de partida, fecha, distancia y desnivel acumulado para la futura planificación de rutas.
 - **RF-003 — Meteorología:** consultar y presentar condiciones meteorológicas relevantes para una ruta planificada.
 - **RF-004 — Viento:** considerar velocidad y dirección del viento, e informar de condiciones potencialmente peligrosas.
@@ -42,16 +43,16 @@ Login, autenticación, rutas ciclistas, integración meteorológica, mapas, GPX,
 
 - **RNF-001 — Lenguaje y stack:** el código principal se desarrollará con TypeScript; el frontend utilizará React y Vite, y el backend Node.js y Express.
 - **RNF-002 — Arquitectura:** el backend debe mantener Clean Architecture y evitar dependencias tecnológicas en Domain.
-- **RNF-003 — Configuración:** secretos y configuración sensible deben gestionarse mediante variables de entorno. La plantilla de `DATABASE_URL` está disponible, pero una conexión real sigue pendiente de configuración local.
+- **RNF-003 — Configuración:** secretos y configuración sensible deben gestionarse mediante variables de entorno. La conexión local con PostgreSQL/Supabase se configura exclusivamente con `DATABASE_URL` no versionada.
 - **RNF-004 — Calidad técnica:** el backend debe mantenerse compilable con TypeScript y verificarse después de cambios relevantes.
 
 ### Seguridad
 
-La contraseña temporal se genera de forma segura en Infrastructure, se procesa mediante hashing y no se almacena en texto plano ni se devuelve por HTTP. La autenticación utiliza JWT firmado con `JWT_SECRET`, configurado exclusivamente en el entorno local. No existen todavía cambio o recuperación de contraseña, refresh tokens, autorización por roles ni frontend de login.
+La contraseña temporal se genera de forma segura en Infrastructure, se procesa mediante hashing y no se almacena en texto plano ni se devuelve por HTTP. La autenticación utiliza JWT firmado con `JWT_SECRET`, configurado exclusivamente en el entorno local. El cambio de contraseña exige la actual y almacena solamente el nuevo hash. No existen todavía recuperación de contraseña, refresh tokens, autorización por roles ni frontend de login.
 
 ### Gestión de usuarios
 
-El registro inicial está validado contra PostgreSQL. El login backend está implementado; el cambio de contraseña, perfiles y preferencias están pendientes.
+El registro inicial y el login backend están implementados. El cambio de contraseña autenticado está preparado; recuperación de contraseña, perfiles y preferencias están pendientes.
 
 ### Planificación de rutas
 

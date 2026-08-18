@@ -28,7 +28,15 @@ class FakeUserRepository implements UserRepository {
     return this.user;
   }
 
+  async findById(_id: string): Promise<User | null> {
+    return this.user;
+  }
+
   async save(user: User): Promise<User> {
+    return user;
+  }
+
+  async update(user: User): Promise<User> {
     return user;
   }
 }

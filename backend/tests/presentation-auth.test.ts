@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import type { TokenService } from '../src/application/services/TokenService.js';
+import { ChangePasswordController } from '../src/presentation/controllers/change-password-controller.js';
 import { createAuthenticationMiddleware } from '../src/presentation/middlewares/authentication-middleware.js';
 
 class FakeTokenService implements TokenService {
@@ -59,4 +60,33 @@ test('authentication middleware rejects missing and invalid Bearer tokens with t
     assert.equal(response.statusCode, 401);
     assert.deepEqual(response.body, { message: 'Unauthorized.' });
   }
+});
+
+test('change-password controller uses the authenticated JWT context instead of a body userId', async () => {
+  let receivedInput: Record<string, unknown> | undefined;
+  const controller = new ChangePasswordController({
+    execute: async (input: Record<string, unknown>) => { receivedInput = input; },
+  } as never);
+  const response = createResponse();
+
+  await controller.handle(
+    {
+      authenticatedUser: { userId: 'jwt-user-id' },
+      body: {
+        userId: 'attacker-controlled-id',
+        currentPassword: 'CurrentPassword2026',
+        newPassword: 'NewPassword2026',
+      },
+    } as never,
+    response.response as never,
+    () => { throw new Error('Unexpected controller error'); },
+  );
+
+  assert.deepEqual(receivedInput, {
+    userId: 'jwt-user-id',
+    currentPassword: 'CurrentPassword2026',
+    newPassword: 'NewPassword2026',
+  });
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(response.body, { message: 'Password changed successfully.' });
 });

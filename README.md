@@ -20,8 +20,9 @@ El proyecto está en una fase técnica inicial. Actualmente están preparados:
 - Resend integrado como proveedor de correo transaccional para las credenciales iniciales.
 - Login mediante `POST /auth/login`, con JWT de acceso y respuesta segura del usuario.
 - Middleware Bearer reutilizable y endpoint técnico protegido `GET /auth/me`.
+- Cambio de contraseña mediante `POST /auth/change-password`, que actualiza el hash y desactiva `mustChangePassword`.
 
-Todavía están pendientes cambio y recuperación de contraseña, refresh tokens, frontend de login, rutas, meteorología, mapas, GPX, IA y despliegue.
+Todavía están pendientes recuperación de contraseña, refresh tokens, frontend de login, rutas, meteorología, mapas, GPX, IA y despliegue.
 
 ## Stack tecnológico
 
@@ -130,7 +131,7 @@ Respuesta:
 POST /auth/login
 ```
 
-Recibe `email` y `password`. Con credenciales correctas devuelve un `accessToken` y los datos públicos del usuario, incluido `mustChangePassword`. No devuelve contraseñas ni hashes. Mientras este indicador sea `true`, una fase posterior deberá restringir el acceso normal hasta completar el cambio de contraseña.
+Recibe `email` y `password`. Con credenciales correctas devuelve un `accessToken` y los datos públicos del usuario, incluido `mustChangePassword`. No devuelve contraseñas ni hashes.
 
 ```text
 GET /auth/me
@@ -138,6 +139,13 @@ Authorization: Bearer <accessToken>
 ```
 
 Es un endpoint técnico protegido que comprueba el middleware JWT y devuelve únicamente el identificador autenticado. Tokens ausentes, inválidos o expirados devuelven `401`.
+
+```text
+POST /auth/change-password
+Authorization: Bearer <accessToken>
+```
+
+Recibe `currentPassword` y `newPassword`; el usuario se obtiene exclusivamente del JWT. La nueva contraseña debe tener al menos 12 caracteres, una letra y un número, y ser distinta de la actual. Tras un cambio correcto se almacena un nuevo hash y `mustChangePassword` pasa a `false`. El JWT vigente no se reemplaza porque solo contiene identidad y expiración.
 
 ## Arquitectura
 

@@ -5,6 +5,14 @@ import type { UserRepository } from '../../domain/repositories/UserRepository.js
 import { getPrismaClient } from './prisma-client-provider.js';
 
 export class PrismaUserRepository implements UserRepository {
+  async findById(id: string): Promise<User | null> {
+    const record = await getPrismaClient().user.findUnique({
+      where: { id },
+    });
+
+    return record ? this.toDomain(record) : null;
+  }
+
   async findByEmail(email: string): Promise<User | null> {
     const record = await getPrismaClient().user.findUnique({
       where: { email },
@@ -23,6 +31,18 @@ export class PrismaUserRepository implements UserRepository {
         passwordHash: user.passwordHash,
         mustChangePassword: user.mustChangePassword,
         createdAt: user.createdAt,
+      },
+    });
+
+    return this.toDomain(record);
+  }
+
+  async update(user: User): Promise<User> {
+    const record = await getPrismaClient().user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash: user.passwordHash,
+        mustChangePassword: user.mustChangePassword,
       },
     });
 

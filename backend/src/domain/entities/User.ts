@@ -60,6 +60,22 @@ export class User {
     return normalizedEmail;
   }
 
+  withPasswordHash(passwordHash: string, mustChangePassword: boolean): User {
+    if (!passwordHash) {
+      throw new UserValidationError('Password hash is required.');
+    }
+
+    return new User(
+      this.id,
+      this.firstName,
+      this.lastName,
+      this.email,
+      passwordHash,
+      mustChangePassword,
+      this.createdAt,
+    );
+  }
+
   private static requireText(value: string, field: string): string {
     const normalizedValue = value.trim();
 

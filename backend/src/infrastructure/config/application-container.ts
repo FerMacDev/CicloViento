@@ -1,7 +1,10 @@
 import type { TokenService } from '../../application/services/TokenService.js';
+import { SimplePasswordPolicy } from '../../application/services/PasswordPolicy.js';
+import { ChangePasswordUseCase } from '../../application/use-cases/ChangePasswordUseCase.js';
 import { LoginUserUseCase } from '../../application/use-cases/LoginUserUseCase.js';
 import { RegisterUserUseCase } from '../../application/use-cases/RegisterUserUseCase.js';
 import { PrismaUserRepository } from '../database/prisma-user-repository.js';
+import type { UserRepository } from '../../domain/repositories/UserRepository.js';
 import { CryptoIdGenerator } from '../security/crypto-id-generator.js';
 import { SecurePasswordGenerator } from '../security/secure-password-generator.js';
 import { ScryptPasswordHasher } from '../security/scrypt-password-hasher.js';
@@ -11,7 +14,9 @@ import { createTokenService } from './token-service-factory.js';
 export interface ApplicationDependencies {
   registerUserUseCase: RegisterUserUseCase;
   loginUserUseCase: LoginUserUseCase;
+  changePasswordUseCase: ChangePasswordUseCase;
   tokenService: TokenService;
+  userRepository: UserRepository;
 }
 
 export function createRegisterUserUseCase(): RegisterUserUseCase {
@@ -38,6 +43,12 @@ export function createApplicationDependencies(): ApplicationDependencies {
       new CryptoIdGenerator(),
     ),
     loginUserUseCase: new LoginUserUseCase(userRepository, passwordHasher, tokenService),
+    changePasswordUseCase: new ChangePasswordUseCase(
+      userRepository,
+      passwordHasher,
+      new SimplePasswordPolicy(),
+    ),
     tokenService,
+    userRepository,
   };
 }

@@ -16,12 +16,12 @@ backend/src/
 ### Capas actuales
 
 - **Domain:** entidades y reglas que no dependen de tecnologías externas. Incluye User y su contrato UserRepository. `HealthCheck` sigue siendo solo un ejemplo técnico.
-- **Application:** casos de uso y abstracciones de aplicación. Incluye RegisterUserUseCase, LoginUserUseCase, PasswordGenerator, PasswordHasher, TokenService, EmailService e IdGenerator.
+- **Application:** casos de uso y abstracciones de aplicación. Incluye RegisterUserUseCase, LoginUserUseCase, ChangePasswordUseCase, PasswordPolicy, PasswordGenerator, PasswordHasher, TokenService, EmailService e IdGenerator.
 - **Infrastructure:** detalles técnicos de configuración y persistencia. PrismaUserRepository implementa UserRepository; PrismaClient, el adaptador PostgreSQL, el generador criptográfico de contraseñas, el hashing `scrypt`, ResendEmailService y JwtTokenService permanecen en esta capa.
-- **Presentation:** adaptación HTTP con Express, rutas, controllers y middleware. Incluye `POST /users/register`, `POST /auth/login`, el middleware Bearer, `GET /auth/me` y el health check.
+- **Presentation:** adaptación HTTP con Express, rutas, controllers y middleware. Incluye `POST /users/register`, `POST /auth/login`, `POST /auth/change-password`, el middleware Bearer, el guard de cambio obligatorio, `GET /auth/me` y el health check.
 - **main.ts:** punto de composición y arranque del servidor.
 
-El único flujo HTTP implementado es:
+El flujo técnico de health check es:
 
 ```text
 GET /health
@@ -85,6 +85,24 @@ PrismaUserRepository + ScryptPasswordHasher + JwtTokenService
 
 `TokenService` solo recibe y devuelve el identificador del usuario. JwtTokenService firma un JWT con el claim estándar `sub`; `password`, `passwordHash` y `mustChangePassword` no se incluyen. El middleware de autenticación delega la validación criptográfica en TokenService y deja el `userId` autenticado disponible para el endpoint técnico `GET /auth/me`.
 
+El flujo de cambio de contraseña implementado es:
+
+```text
+POST /auth/change-password + Bearer token
+  ↓
+authentication middleware
+  ↓
+ChangePasswordController
+  ↓
+ChangePasswordUseCase
+  ↓
+UserRepository + PasswordHasher + PasswordPolicy
+  ↓
+PrismaUserRepository + ScryptPasswordHasher
+```
+
+El controlador toma `userId` exclusivamente del contexto creado por el middleware JWT, nunca del body. Tras verificar la contraseña actual, ChangePasswordUseCase valida la nueva contraseña, genera su hash, actualiza el usuario y establece `mustChangePassword=false`. No emite otro JWT: el existente mantiene validez porque solo contiene `sub`, `iat` y `exp`.
+
 ## Arquitectura objetivo
 
 La arquitectura objetivo se construirá progresivamente. No está implementada todavía.
@@ -132,6 +150,6 @@ Infrastructure implementará los contratos definidos por Domain o Application cu
 
 La contraseña temporal se genera y se entrega a EmailService solo en memoria; User persiste únicamente passwordHash y mustChangePassword. El MVP intenta entregar el email antes de persistir el usuario, por lo que un fallo de Resend devuelve un error controlado y no deja un usuario creado sin credenciales entregadas. Si la persistencia fallase después de una entrega satisfactoria, el destinatario recibiría unas credenciales aún no activas; podrá reintentar el registro. Como evolución, el patrón outbox permitirá coordinar persistencia y reintentos de entrega de forma fiable.
 
-El login permite autenticar una contraseña temporal y devuelve `mustChangePassword` como dato público de contexto. La siguiente fase deberá implementar el cambio de contraseña e impedir el acceso normal a funcionalidades de CicloViento mientras dicho campo sea `true`.
+El login permite autenticar una contraseña temporal y devuelve `mustChangePassword` como dato público de contexto. El cambio de contraseña puede hacerse tanto de forma obligatoria como voluntaria y exige siempre la contraseña actual. El guard `createMustChangePasswordGuard` es reutilizable para futuras rutas normales: consulta el usuario mediante UserRepository y devuelve `403` mientras `mustChangePassword` sea `true`; login, contexto mínimo y cambio de contraseña no se bloquean.
 
 Por tanto, la futura persistencia o los servicios externos podrán sustituirse sin introducir sus dependencias en las reglas de dominio.
