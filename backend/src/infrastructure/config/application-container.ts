@@ -12,6 +12,7 @@ import { GenerateCyclingRouteUseCase } from '../../application/use-cases/Generat
 import { GetRouteWeatherUseCase } from '../../application/use-cases/GetRouteWeatherUseCase.js';
 import { OpenMeteoWeatherService } from '../weather/open-meteo-weather-service.js';
 import { AnalyzePlannedRouteWindUseCase } from '../../application/use-cases/AnalyzePlannedRouteWindUseCase.js';
+import { GenerateWindOptimizedRouteUseCase } from '../../application/use-cases/GenerateWindOptimizedRouteUseCase.js';
 import { PrismaUserRepository } from '../database/prisma-user-repository.js';
 import type { UserRepository } from '../../domain/repositories/UserRepository.js';
 import { CryptoIdGenerator } from '../security/crypto-id-generator.js';
@@ -49,6 +50,13 @@ export function createApplicationDependencies(): ApplicationDependencies {
   const tokenService = createTokenService();
 
   const routePlanRepository = new PrismaRoutePlanRepository();
+  const routingService = new OpenRouteServiceRoutingService(process.env.ORS_API_KEY);
+  const weatherService = new OpenMeteoWeatherService();
+  const windOptimizedRouteUseCase = new GenerateWindOptimizedRouteUseCase(
+    routePlanRepository,
+    routingService,
+    weatherService,
+  );
 
   return {
     registerUserUseCase: new RegisterUserUseCase(
@@ -70,9 +78,10 @@ export function createApplicationDependencies(): ApplicationDependencies {
     createRoutePlanUseCase: new CreateRoutePlanUseCase(routePlanRepository, new CryptoIdGenerator(), new NominatimGeocodingService(process.env.NOMINATIM_BASE_URL ?? 'https://nominatim.openstreetmap.org', process.env.NOMINATIM_USER_AGENT ?? 'CicloViento/1.0')),
     generateCyclingRouteUseCase: new GenerateCyclingRouteUseCase(
       routePlanRepository,
-      new OpenRouteServiceRoutingService(process.env.ORS_API_KEY),
+      routingService,
+      windOptimizedRouteUseCase,
     ),
-    getRouteWeatherUseCase: new GetRouteWeatherUseCase(routePlanRepository, new OpenMeteoWeatherService()),
-    analyzePlannedRouteWindUseCase: new AnalyzePlannedRouteWindUseCase(routePlanRepository,new OpenRouteServiceRoutingService(process.env.ORS_API_KEY),new OpenMeteoWeatherService()),
+    getRouteWeatherUseCase: new GetRouteWeatherUseCase(routePlanRepository, weatherService),
+    analyzePlannedRouteWindUseCase: new AnalyzePlannedRouteWindUseCase(routePlanRepository, routingService, weatherService),
   };
 }

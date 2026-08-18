@@ -1,0 +1,141 @@
+import type { RoutePlan } from '../../domain/entities/RoutePlan.js';
+import type { RoutePlanRepository } from '../../domain/repositories/RoutePlanRepository.js';
+import type { GeneratedRoute, RoutingService } from '../services/RoutingService.js';
+import type { WeatherService, WindForecast } from '../services/WeatherService.js';
+import { WindRouteAnalyzer, type WindRouteAnalysis } from '../services/WindRouteAnalyzer.js';
+import { classifyWindRisk, windDirectionCardinal, type WindRiskLevel } from '../services/WindRisk.js';
+
+export const WIND_ROUTE_SEEDS = [1, 2, 3] as const;
+export const WIND_ROUTE_DISTANCE_TOLERANCE = 0.2;
+
+export interface RouteCandidateSummary {
+  seed: number;
+  actualDistanceKm: number;
+  ascentM?: number;
+  favorableWindScore: number;
+  returnTailwindPercent: number;
+  returnHeadwindPercent: number;
+  returnCrosswindPercent: number;
+  selected: boolean;
+}
+
+export interface WindOptimizedRouteResult {
+  routePlanId: string;
+  route: GeneratedRoute;
+  weather: WindForecast;
+  riskLevel: WindRiskLevel;
+  directionCardinal: string;
+  analysis: WindRouteAnalysis;
+  selectedCandidate: number;
+  candidateCount: number;
+  candidates: RouteCandidateSummary[];
+}
+
+export class WindOptimizedRouteNotFoundError extends Error {
+  constructor() {
+    super('Route plan was not found.');
+    this.name = 'WindOptimizedRouteNotFoundError';
+  }
+}
+
+export class NoViableWindRouteError extends Error {
+  constructor() {
+    super('No viable wind-optimized route was found.');
+    this.name = 'NoViableWindRouteError';
+  }
+}
+
+interface AnalyzedCandidate {
+  seed: number;
+  route: GeneratedRoute;
+  analysis: WindRouteAnalysis;
+  distanceDifferenceKm: number;
+}
+
+export class GenerateWindOptimizedRouteUseCase {
+  constructor(
+    private readonly routePlanRepository: RoutePlanRepository,
+    private readonly routingService: RoutingService,
+    private readonly weatherService: WeatherService,
+    private readonly analyzer = new WindRouteAnalyzer(),
+  ) {}
+
+  async execute(routePlanId: string, authenticatedUserId: string): Promise<WindOptimizedRouteResult> {
+    const routePlan = await this.routePlanRepository.findById(routePlanId);
+    if (!routePlan || routePlan.userId !== authenticatedUserId) throw new WindOptimizedRouteNotFoundError();
+    return this.executeForRoutePlan(routePlan);
+  }
+
+  async executeForRoutePlan(routePlan: RoutePlan): Promise<WindOptimizedRouteResult> {
+    const forecast = await this.weatherService.getWindForecast({
+      latitude: routePlan.latitude,
+      longitude: routePlan.longitude,
+      date: routePlan.date,
+      referenceHour: 9,
+    });
+
+    const attemptedCandidates: Array<AnalyzedCandidate | null> = await Promise.all(WIND_ROUTE_SEEDS.map(async (seed): Promise<AnalyzedCandidate | null> => {
+      try {
+        const route = await this.routingService.generateRoundTrip({
+          start: { latitude: routePlan.latitude, longitude: routePlan.longitude },
+          targetDistanceKm: routePlan.distanceKm,
+          seed,
+        });
+        const actualDistanceKm = route.distanceM / 1000;
+        if (!isDistanceWithinTolerance(actualDistanceKm, routePlan.distanceKm)) return null;
+
+        return {
+          seed,
+          route,
+          analysis: this.analyzer.analyze(route, forecast),
+          distanceDifferenceKm: Math.abs(actualDistanceKm - routePlan.distanceKm),
+        } satisfies AnalyzedCandidate;
+      } catch {
+        return null;
+      }
+    }));
+
+    const candidates = attemptedCandidates.filter((candidate): candidate is AnalyzedCandidate => candidate !== null);
+    if (candidates.length === 0) throw new NoViableWindRouteError();
+
+    const selected = [...candidates].sort(compareCandidates)[0];
+    const summaries = candidates
+      .sort((left, right) => left.seed - right.seed)
+      .map((candidate) => toSummary(candidate, candidate.seed === selected.seed));
+
+    return {
+      routePlanId: routePlan.id,
+      route: selected.route,
+      weather: forecast,
+      riskLevel: classifyWindRisk(forecast),
+      directionCardinal: windDirectionCardinal(forecast.windDirectionDegrees),
+      analysis: selected.analysis,
+      selectedCandidate: selected.seed,
+      candidateCount: candidates.length,
+      candidates: summaries,
+    };
+  }
+}
+
+function isDistanceWithinTolerance(actualDistanceKm: number, targetDistanceKm: number): boolean {
+  return Math.abs(actualDistanceKm - targetDistanceKm) <= targetDistanceKm * WIND_ROUTE_DISTANCE_TOLERANCE;
+}
+
+function compareCandidates(left: AnalyzedCandidate, right: AnalyzedCandidate): number {
+  return right.analysis.favorableWindScore - left.analysis.favorableWindScore
+    || left.distanceDifferenceKm - right.distanceDifferenceKm
+    || left.seed - right.seed;
+}
+
+function toSummary(candidate: AnalyzedCandidate, selected: boolean): RouteCandidateSummary {
+  return {
+    seed: candidate.seed,
+    actualDistanceKm: candidate.route.distanceM / 1000,
+    ...(candidate.route.ascentM === undefined ? {} : { ascentM: candidate.route.ascentM }),
+    favorableWindScore: candidate.analysis.favorableWindScore,
+    returnTailwindPercent: candidate.analysis.returnTailwindPercent,
+    returnHeadwindPercent: candidate.analysis.returnHeadwindPercent,
+    returnCrosswindPercent: candidate.analysis.returnCrosswindPercent,
+    selected,
+  };
+}

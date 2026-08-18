@@ -29,8 +29,9 @@ El alcance funcional se desarrollará de forma incremental. Este documento difer
 - Generación explícita de un recorrido ciclista circular real mediante openrouteservice, perfil `cycling-road` y geometría GeoJSON.
 - Visualización del recorrido generado mediante una polyline de Leaflet/OpenStreetMap.
 - Consulta meteorológica de viento mediante Open-Meteo: velocidad, dirección, rachas y clasificación inicial de riesgo.
+- Selección básica de ruta favorable al viento: hasta tres candidatas deterministas, comparación de favorabilidad del regreso y ruta seleccionada.
 
-La optimización por viento, integración meteorológica, GPX, IA y despliegue siguen pendientes. La generación circular pública actual está limitada a 100 km; RoutePlan sigue aceptando preferencias de hasta 300 km para futuras estrategias de routing.
+La generación circular pública actual está limitada a 100 km; RoutePlan sigue aceptando preferencias de hasta 300 km para futuras estrategias de routing.
 
 ## Planificado / pendiente
 
@@ -66,7 +67,7 @@ La solicitud de planificación, geocodificación y generación de un único reco
 
 ### Meteorología y viento
 
-La previsión de viento se consulta explícitamente para el punto de salida. Está implementado el análisis de una ruta real por segmentos: bearing, tailwind/headwind/crosswind, porcentajes ponderados por distancia, análisis del regreso, favorableWindScore y advertencias por riesgo. Siguen pendientes alternativas, selección automática y optimización de ruta.
+La previsión de viento se consulta explícitamente para el punto de salida. Está implementado el análisis de una ruta real por segmentos: bearing, tailwind/headwind/crosswind, porcentajes ponderados por distancia, análisis del regreso, favorableWindScore y advertencias por riesgo. Si se solicita una ruta favorable al viento, se generan hasta tres alternativas circulares deterministas, se comparan con una única previsión y se selecciona la de mejor favorabilidad para el regreso. Siguen pendientes optimización avanzada, hora de salida configurable y meteorología por múltiples puntos u horas.
 
 ### Mapas y GPX
 

@@ -15,6 +15,7 @@ export interface GeneratedRoute {
 export interface GenerateRoundTripInput {
   start: RouteCoordinate;
   targetDistanceKm: number;
+  seed?: number;
 }
 
 export interface RoutingService {

@@ -34,6 +34,20 @@ test('OpenRouteServiceRoutingService requests cycling-road GeoJSON and converts 
   globalThis.fetch = originalFetch;
 });
 
+test('OpenRouteServiceRoutingService forwards deterministic candidate seeds without changing options', async () => {
+  const seeds = [1, 2, 3];
+  for (const seed of seeds) {
+    let options: RequestInit | undefined;
+    globalThis.fetch = async (_input, init) => { options = init; return response(validGeoJson); };
+    await new OpenRouteServiceRoutingService('test-key').generateRoundTrip({ start: { latitude: 40, longitude: -3 }, targetDistanceKm: 40, seed });
+    const body = JSON.parse(String(options?.body));
+    assert.equal(body.options.round_trip.seed, seed);
+    assert.equal(body.options.round_trip.points, 4);
+    assert.deepEqual(body.options.avoid_features, ['ferries', 'steps']);
+  }
+  globalThis.fetch = originalFetch;
+});
+
 test('OpenRouteServiceRoutingService maps provider failures and malformed GeoJSON to controlled errors', async () => {
   globalThis.fetch = async () => response({}, 404);
   await assert.rejects(() => new OpenRouteServiceRoutingService('test-key').generateRoundTrip({ start: { latitude: 40, longitude: -3 }, targetDistanceKm: 40 }), RouteNotFoundError);

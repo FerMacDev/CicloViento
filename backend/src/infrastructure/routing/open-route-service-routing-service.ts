@@ -55,7 +55,7 @@ export class OpenRouteServiceRoutingService implements RoutingService {
             round_trip: {
               length: input.targetDistanceKm * 1000,
               points: 4,
-              seed: 1,
+              seed: input.seed ?? 1,
             },
           },
         }),

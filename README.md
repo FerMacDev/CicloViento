@@ -25,7 +25,7 @@ El proyecto está en una fase técnica inicial. Actualmente están preparados:
 - Geocodificación del punto de partida y mapa Leaflet/OpenStreetMap.
 - Generación manual de un recorrido ciclista circular de carretera con openrouteservice.
 
-Todavía están pendientes recuperación de contraseña, refresh tokens, optimización por viento, GPX, IA y despliegue.
+Todavía están pendientes recuperación de contraseña, refresh tokens, optimización avanzada, GPX, IA y despliegue.
 
 ## Stack tecnológico
 
@@ -161,13 +161,15 @@ Para este MVP, el access token y datos públicos del usuario se guardan mediante
 La página protegida `/plan-route` guarda una solicitud de planificación con punto de partida, fecha, distancia, desnivel y preferencia de viento mediante `POST /route-plans`. Aún no genera recorridos ni análisis meteorológico.
 
 El backend geocodifica el punto de partida con Nominatim al guardar la planificación y persiste sus coordenadas. Para respetar el proveedor público, aplica una caché en memoria y limita las consultas a una por segundo; no hay autocomplete. La configuración opcional usa `NOMINATIM_BASE_URL` y `NOMINATIM_USER_AGENT` (por defecto `CicloViento/1.0`), sin secretos.
-El botón **Generar recorrido** llama de forma explícita a `POST /route-plans/:id/generate`. El backend usa openrouteservice Directions v2 con perfil `cycling-road`, round-trip y respuesta GeoJSON; la clave `ORS_API_KEY` se configura exclusivamente en `backend/.env` y nunca se expone al frontend. La API pública de ORS limita los recorridos circulares a 100 km: no se genera ni trunca una ruta superior. El mapa muestra la polyline real devuelta y distingue la distancia solicitada de la generada. La preferencia de viento no modifica aún la ruta: su optimización sigue pendiente del análisis meteorológico.
+El botón **Generar recorrido** llama de forma explícita a `POST /route-plans/:id/generate`. El backend usa openrouteservice Directions v2 con perfil `cycling-road`, round-trip y respuesta GeoJSON; la clave `ORS_API_KEY` se configura exclusivamente en `backend/.env` y nunca se expone al frontend. La API pública de ORS limita los recorridos circulares a 100 km: no se genera ni trunca una ruta superior. El mapa muestra la polyline real devuelta y distingue la distancia solicitada de la generada. Al solicitar una ruta favorable al viento, el backend compara hasta tres candidatas antes de devolver una sola geometría seleccionada.
 
-La consulta explícita `GET /route-plans/:id/weather` usa Open-Meteo Forecast API sin API key para este uso. Muestra velocidad, rachas, dirección meteorológica y nivel de riesgo. Sin una hora en RoutePlan, utiliza las 09:00 locales como referencia provisional. La interfaz atribuye los datos a Open-Meteo; no existe todavía optimización por viento.
+La consulta explícita `GET /route-plans/:id/weather` usa Open-Meteo Forecast API sin API key para este uso. Muestra velocidad, rachas, dirección meteorológica y nivel de riesgo. Sin una hora en RoutePlan, utiliza las 09:00 locales como referencia provisional. La interfaz atribuye los datos a Open-Meteo.
 
 ## Análisis del viento
 
-`POST /route-plans/:id/wind-analysis` requiere Bearer JWT y analiza el recorrido generado. Tailwind es viento favorable en el avance; headwind es contrario y crosswind lateral. La dirección meteorológica indica de dónde viene el viento. Los porcentajes se calculan por distancia y la vuelta se aproxima como la segunda mitad de la distancia. `favorableWindScore` va de 0 a 100: cuanto mayor, más favorable es el regreso según cola y lateral. CicloViento aún no selecciona automáticamente la mejor ruta ni optimiza alternativas.
+`POST /route-plans/:id/wind-analysis` requiere Bearer JWT y analiza el recorrido generado. Tailwind es viento favorable en el avance; headwind es contrario y crosswind lateral. La dirección meteorológica indica de dónde viene el viento. Los porcentajes se calculan por distancia y la vuelta se aproxima como la segunda mitad de la distancia. `favorableWindScore` va de 0 a 100: cuanto mayor, más favorable es el regreso según cola y lateral.
+
+Al activar **Ruta favorable al viento**, el backend compara hasta tres recorridos circulares con las semillas deterministas 1, 2 y 3. Descarta las alternativas cuya distancia se aleja más de un 20 % de la solicitada y selecciona el mayor score; en empate prefiere la distancia más próxima y después la semilla menor. La previsión se consulta una vez para el punto de salida y puede cambiar. Favorabilidad no equivale a seguridad: la interfaz advierte ante riesgo alto o peligroso y no presenta esas condiciones como seguras. Aún no hay optimización avanzada, hora de salida configurable, GPX ni IA.
 
 ## Arquitectura
 

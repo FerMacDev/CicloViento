@@ -11,7 +11,14 @@ import type { GenerateCyclingRouteUseCase } from '../../application/use-cases/Ge
 import type { GetRouteWeatherUseCase } from '../../application/use-cases/GetRouteWeatherUseCase.js';
 import { createAuthenticationMiddleware } from '../middlewares/authentication-middleware.js';
 import { createMustChangePasswordGuard } from '../middlewares/must-change-password-guard.js';
-export function createRoutePlansRouter(createRoutePlanUseCase: CreateRoutePlanUseCase, generateCyclingRouteUseCase: GenerateCyclingRouteUseCase, getRouteWeatherUseCase: GetRouteWeatherUseCase, analyzePlannedRouteWindUseCase:AnalyzePlannedRouteWindUseCase, tokenService: TokenService, userRepository: UserRepository): Router {
+export function createRoutePlansRouter(
+  createRoutePlanUseCase: CreateRoutePlanUseCase,
+  generateCyclingRouteUseCase: GenerateCyclingRouteUseCase,
+  getRouteWeatherUseCase: GetRouteWeatherUseCase,
+  analyzePlannedRouteWindUseCase: AnalyzePlannedRouteWindUseCase,
+  tokenService: TokenService,
+  userRepository: UserRepository,
+): Router {
   const router = Router();
   const authenticate = createAuthenticationMiddleware(tokenService);
   const requireChangedPassword = createMustChangePasswordGuard(userRepository);
