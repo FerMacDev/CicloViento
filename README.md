@@ -22,8 +22,10 @@ El proyecto está en una fase técnica inicial. Actualmente están preparados:
 - Middleware Bearer reutilizable y endpoint técnico protegido `GET /auth/me`.
 - Cambio de contraseña mediante `POST /auth/change-password`, que actualiza el hash y desactiva `mustChangePassword`.
 - Frontend de inicio, registro, login, cambio obligatorio de contraseña y dashboard autenticado mínimo.
+- Geocodificación del punto de partida y mapa Leaflet/OpenStreetMap.
+- Generación manual de un recorrido ciclista circular de carretera con openrouteservice.
 
-Todavía están pendientes recuperación de contraseña, refresh tokens, frontend de login, rutas, meteorología, mapas, GPX, IA y despliegue.
+Todavía están pendientes recuperación de contraseña, refresh tokens, meteorología, optimización por viento, GPX, IA y despliegue.
 
 ## Stack tecnológico
 
@@ -158,7 +160,8 @@ Para este MVP, el access token y datos públicos del usuario se guardan mediante
 
 La página protegida `/plan-route` guarda una solicitud de planificación con punto de partida, fecha, distancia, desnivel y preferencia de viento mediante `POST /route-plans`. Aún no genera recorridos ni análisis meteorológico.
 
-El backend geocodifica el punto de partida con Nominatim al guardar la planificación y persiste sus coordenadas. Para respetar el proveedor público, aplica una caché en memoria y limita las consultas a una por segundo; no hay autocomplete. Tras guardar, `/plan-route` muestra únicamente el punto de salida en Leaflet sobre OpenStreetMap, con su atribución visible. No existe todavía recorrido ciclista real, polyline ni análisis de viento. La configuración opcional usa `NOMINATIM_BASE_URL` y `NOMINATIM_USER_AGENT` (por defecto `CicloViento/1.0`), sin secretos.
+El backend geocodifica el punto de partida con Nominatim al guardar la planificación y persiste sus coordenadas. Para respetar el proveedor público, aplica una caché en memoria y limita las consultas a una por segundo; no hay autocomplete. La configuración opcional usa `NOMINATIM_BASE_URL` y `NOMINATIM_USER_AGENT` (por defecto `CicloViento/1.0`), sin secretos.
+El botón **Generar recorrido** llama de forma explícita a `POST /route-plans/:id/generate`. El backend usa openrouteservice Directions v2 con perfil `cycling-road`, round-trip y respuesta GeoJSON; la clave `ORS_API_KEY` se configura exclusivamente en `backend/.env` y nunca se expone al frontend. La API pública de ORS limita los recorridos circulares a 100 km: no se genera ni trunca una ruta superior. El mapa muestra la polyline real devuelta y distingue la distancia solicitada de la generada. La preferencia de viento no modifica aún la ruta: su optimización sigue pendiente del análisis meteorológico.
 
 ## Arquitectura
 

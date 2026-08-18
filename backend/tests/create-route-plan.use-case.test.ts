@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'; import test from 'node:test';
 import { CreateRoutePlanUseCase } from '../src/application/use-cases/CreateRoutePlanUseCase.js'; import { RoutePlanValidationError } from '../src/domain/entities/RoutePlan.js'; import type { RoutePlanRepository } from '../src/domain/repositories/RoutePlanRepository.js'; import type { RoutePlan } from '../src/domain/entities/RoutePlan.js';
-class Repo implements RoutePlanRepository { saved?: RoutePlan; async save(plan: RoutePlan) { this.saved = plan; return plan; } }
+class Repo implements RoutePlanRepository { saved?: RoutePlan; async save(plan: RoutePlan) { this.saved = plan; return plan; } async findById() { return this.saved ?? null; } }
 const geocoder = { geocode: async () => ({ latitude: 40.48, longitude: -3.36 }) };
 const input = { userId: 'user-1', startLocation: 'Alcalá de Henares', date: '2099-08-25', distanceKm: 80, elevationGainM: 700, favorableWind: true };
 test('CreateRoutePlanUseCase persists valid preferences', async () => { const repo = new Repo(); const result = await new CreateRoutePlanUseCase(repo, { generate: () => 'plan-1' }, geocoder).execute(input); assert.equal(result.latitude, 40.48); assert.equal(repo.saved?.userId, 'user-1'); assert.equal(result.favorableWind, true); });

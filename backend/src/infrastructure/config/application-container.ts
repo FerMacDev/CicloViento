@@ -7,6 +7,8 @@ import { RegisterUserUseCase } from '../../application/use-cases/RegisterUserUse
 import { CreateRoutePlanUseCase } from '../../application/use-cases/CreateRoutePlanUseCase.js';
 import { PrismaRoutePlanRepository } from '../database/prisma-route-plan-repository.js';
 import { NominatimGeocodingService } from '../geocoding/nominatim-geocoding-service.js';
+import { OpenRouteServiceRoutingService } from '../routing/open-route-service-routing-service.js';
+import { GenerateCyclingRouteUseCase } from '../../application/use-cases/GenerateCyclingRouteUseCase.js';
 import { PrismaUserRepository } from '../database/prisma-user-repository.js';
 import type { UserRepository } from '../../domain/repositories/UserRepository.js';
 import { CryptoIdGenerator } from '../security/crypto-id-generator.js';
@@ -23,6 +25,7 @@ export interface ApplicationDependencies {
   tokenService: TokenService;
   userRepository: UserRepository;
   createRoutePlanUseCase: CreateRoutePlanUseCase;
+  generateCyclingRouteUseCase: GenerateCyclingRouteUseCase;
 }
 
 export function createRegisterUserUseCase(): RegisterUserUseCase {
@@ -39,6 +42,8 @@ export function createApplicationDependencies(): ApplicationDependencies {
   const userRepository = new PrismaUserRepository();
   const passwordHasher = new ScryptPasswordHasher();
   const tokenService = createTokenService();
+
+  const routePlanRepository = new PrismaRoutePlanRepository();
 
   return {
     registerUserUseCase: new RegisterUserUseCase(
@@ -57,6 +62,10 @@ export function createApplicationDependencies(): ApplicationDependencies {
     getAuthenticatedUserUseCase: new GetAuthenticatedUserUseCase(userRepository),
     tokenService,
     userRepository,
-    createRoutePlanUseCase: new CreateRoutePlanUseCase(new PrismaRoutePlanRepository(), new CryptoIdGenerator(), new NominatimGeocodingService(process.env.NOMINATIM_BASE_URL ?? 'https://nominatim.openstreetmap.org', process.env.NOMINATIM_USER_AGENT ?? 'CicloViento/1.0')),
+    createRoutePlanUseCase: new CreateRoutePlanUseCase(routePlanRepository, new CryptoIdGenerator(), new NominatimGeocodingService(process.env.NOMINATIM_BASE_URL ?? 'https://nominatim.openstreetmap.org', process.env.NOMINATIM_USER_AGENT ?? 'CicloViento/1.0')),
+    generateCyclingRouteUseCase: new GenerateCyclingRouteUseCase(
+      routePlanRepository,
+      new OpenRouteServiceRoutingService(process.env.ORS_API_KEY),
+    ),
   };
 }

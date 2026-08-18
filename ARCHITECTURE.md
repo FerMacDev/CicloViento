@@ -156,8 +156,32 @@ La contraseña temporal se genera y se entrega a EmailService solo en memoria; U
 
 El login permite autenticar una contraseña temporal y devuelve `mustChangePassword` como dato público de contexto. El cambio de contraseña puede hacerse tanto de forma obligatoria como voluntaria y exige siempre la contraseña actual. El guard `createMustChangePasswordGuard` es reutilizable para futuras rutas normales: consulta el usuario mediante UserRepository y devuelve `403` mientras `mustChangePassword` sea `true`; login, contexto mínimo y cambio de contraseña no se bloquean.
 
-RoutePlan es el primer dominio ciclista. `POST /route-plans` aplica autenticación JWT, el guard de cambio obligatorio y CreateRoutePlanUseCase, que persiste la solicitud mediante RoutePlanRepository y PrismaRoutePlanRepository. El formulario protegido `/plan-route` almacena únicamente preferencias; routing, mapas, meteorología y optimización siguen fuera de alcance.
+RoutePlan es el primer dominio ciclista. `POST /route-plans` aplica autenticación JWT, el guard de cambio obligatorio y CreateRoutePlanUseCase, que persiste la solicitud mediante RoutePlanRepository y PrismaRoutePlanRepository. El formulario protegido `/plan-route` almacena las preferencias y sus coordenadas geocodificadas.
 
-La geocodificación sigue el flujo `startLocation → CreateRoutePlanUseCase → GeocodingService → NominatimGeocodingService → latitude/longitude → RoutePlan → PrismaRoutePlanRepository`. Application conoce solo el puerto GeocodingService; Nominatim, su caché en memoria y el límite de una solicitud por segundo pertenecen a Infrastructure y pueden sustituirse por otro proveedor. El frontend no llama a Nominatim: Leaflet y OpenStreetMap solo visualizan las coordenadas ya persistidas con un marcador de salida.
+La geocodificación sigue el flujo `startLocation → CreateRoutePlanUseCase → GeocodingService → NominatimGeocodingService → latitude/longitude → RoutePlan → PrismaRoutePlanRepository`. Application conoce solo el puerto GeocodingService; Nominatim, su caché en memoria y el límite de una solicitud por segundo pertenecen a Infrastructure y pueden sustituirse por otro proveedor.
+
+La generación del recorrido sigue este flujo:
+
+```text
+POST /route-plans/:id/generate
+  ↓
+authentication middleware + must-change-password guard
+  ↓
+GenerateCyclingRouteController
+  ↓
+GenerateCyclingRouteUseCase
+  ↓
+RoutePlanRepository + RoutingService
+  ↓
+PrismaRoutePlanRepository + OpenRouteServiceRoutingService
+  ↓
+openrouteservice Directions v2
+```
+
+`RoutingService` es un puerto de Application y define el resultado propio `GeneratedRoute`; no expone tipos, URL ni clave de openrouteservice. `OpenRouteServiceRoutingService` es el adaptador de Infrastructure: solicita `cycling-road`, una ruta `round_trip` de cuatro puntos internos, seed determinista `1`, y evita ferries y steps. Solicita GeoJSON y centraliza la conversión de `[longitude, latitude]` de ORS a `{ latitude, longitude }` interna.
+
+El round-trip de la API pública actual de ORS está limitado a 100 km. RoutePlan mantiene su rango de negocio de 10 a 300 km, mientras el caso de uso consulta el límite declarado por el proveedor configurado y devuelve un error funcional para trayectos mayores sin truncarlos. La geometría generada no se persiste en esta fase: RoutePlan sigue siendo la petición y GeneratedRoute se devuelve solamente al frontend. El frontend dibuja esa geometría real como una Polyline de Leaflet y ajusta el viewport; no llama a ORS ni conoce su API.
+
+La propiedad se verifica en el caso de uso. Una planificación inexistente y una planificación de otro usuario se devuelven ambas como 404, para no revelar su existencia.
 
 Por tanto, la futura persistencia o los servicios externos podrán sustituirse sin introducir sus dependencias en las reglas de dominio.

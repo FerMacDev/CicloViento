@@ -6,7 +6,7 @@ import type {
   RegisterResponse,
   User,
 } from '../types/auth';
-import type { RoutePlanRequest, RoutePlanResponse } from '../types/route-plan';
+import type { GeneratedRouteResponse, RoutePlanRequest, RoutePlanResponse } from '../types/route-plan';
 
 const apiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
@@ -58,4 +58,7 @@ export const apiClient = {
     return request('/auth/change-password', { method: 'POST', body: JSON.stringify(input) }, accessToken);
   },
   createRoutePlan(input: RoutePlanRequest, accessToken: string): Promise<RoutePlanResponse> { return request('/route-plans', { method: 'POST', body: JSON.stringify(input) }, accessToken); },
+  generateCyclingRoute(routePlanId: string, accessToken: string): Promise<GeneratedRouteResponse> {
+    return request(`/route-plans/${encodeURIComponent(routePlanId)}/generate`, { method: 'POST' }, accessToken);
+  },
 };

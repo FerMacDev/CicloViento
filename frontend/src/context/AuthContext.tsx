@@ -53,6 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       authStorage.clear();
     },
     async createRoutePlan(input: RoutePlanRequest): Promise<RoutePlanResponse> { if (!accessToken) throw new Error('No active session.'); return apiClient.createRoutePlan(input, accessToken); },
+    async generateCyclingRoute(routePlanId: string) { if (!accessToken) throw new Error('No active session.'); return apiClient.generateCyclingRoute(routePlanId, accessToken); },
   }), [accessToken, isRestoring, user]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

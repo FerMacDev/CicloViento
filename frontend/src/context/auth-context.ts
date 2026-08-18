@@ -1,7 +1,7 @@
 import { createContext } from 'react';
 
 import type { ChangePasswordRequest, LoginRequest, User } from '../types/auth';
-import type { RoutePlanRequest, RoutePlanResponse } from '../types/route-plan';
+import type { GeneratedRouteResponse, RoutePlanRequest, RoutePlanResponse } from '../types/route-plan';
 
 export interface AuthContextValue {
   user: User | null;
@@ -11,6 +11,7 @@ export interface AuthContextValue {
   changePassword(input: ChangePasswordRequest): Promise<void>;
   logout(): void;
   createRoutePlan(input: RoutePlanRequest): Promise<RoutePlanResponse>;
+  generateCyclingRoute(routePlanId: string): Promise<GeneratedRouteResponse>;
 }
 
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined);

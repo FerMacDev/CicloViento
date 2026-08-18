@@ -26,8 +26,10 @@ El alcance funcional se desarrollará de forma incremental. Este documento difer
 - Frontend de registro, login, cambio obligatorio de contraseña, dashboard mínimo y cierre de sesión local.
 - Solicitud RoutePlan persistida con preferencias de ruta y formulario protegido `/plan-route`; no incluye generación real de recorridos.
 - Geocodificación del punto de partida, persistencia de latitude/longitude y mapa con marcador del punto de salida.
+- Generación explícita de un recorrido ciclista circular real mediante openrouteservice, perfil `cycling-road` y geometría GeoJSON.
+- Visualización del recorrido generado mediante una polyline de Leaflet/OpenStreetMap.
 
-Rutas ciclistas, integración meteorológica, mapas, GPX, IA y despliegue siguen pendientes.
+La optimización por viento, integración meteorológica, GPX, IA y despliegue siguen pendientes. La generación circular pública actual está limitada a 100 km; RoutePlan sigue aceptando preferencias de hasta 300 km para futuras estrategias de routing.
 
 ## Planificado / pendiente
 
@@ -59,7 +61,7 @@ El registro inicial y el login backend están implementados. El cambio de contra
 
 ### Planificación de rutas
 
-La creación, consulta y selección de rutas están pendientes.
+La solicitud de planificación, geocodificación y generación de un único recorrido circular de carretera están implementadas. La distancia generada por el proveedor es aproximada y se muestra separada de la solicitada. La selección de alternativas y la optimización de desnivel siguen pendientes.
 
 ### Meteorología y viento
 
@@ -67,7 +69,7 @@ No hay integración con proveedores meteorológicos ni cálculo de condiciones d
 
 ### Mapas y GPX
 
-La visualización mediante mapas y la importación o descarga de GPX están pendientes.
+El mapa visualiza el punto de partida y la geometría del recorrido generado. La importación o descarga de GPX siguen pendientes.
 
 ### IA
 

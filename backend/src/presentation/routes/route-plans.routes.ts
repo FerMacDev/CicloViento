@@ -3,6 +3,15 @@ import type { CreateRoutePlanUseCase } from '../../application/use-cases/CreateR
 import type { TokenService } from '../../application/services/TokenService.js';
 import type { UserRepository } from '../../domain/repositories/UserRepository.js';
 import { CreateRoutePlanController } from '../controllers/create-route-plan-controller.js';
+import { GenerateCyclingRouteController } from '../controllers/generate-cycling-route-controller.js';
+import type { GenerateCyclingRouteUseCase } from '../../application/use-cases/GenerateCyclingRouteUseCase.js';
 import { createAuthenticationMiddleware } from '../middlewares/authentication-middleware.js';
 import { createMustChangePasswordGuard } from '../middlewares/must-change-password-guard.js';
-export function createRoutePlansRouter(useCase: CreateRoutePlanUseCase, tokenService: TokenService, userRepository: UserRepository): Router { const router = Router(); router.post('/route-plans', createAuthenticationMiddleware(tokenService), createMustChangePasswordGuard(userRepository), new CreateRoutePlanController(useCase).handle); return router; }
+export function createRoutePlansRouter(createRoutePlanUseCase: CreateRoutePlanUseCase, generateCyclingRouteUseCase: GenerateCyclingRouteUseCase, tokenService: TokenService, userRepository: UserRepository): Router {
+  const router = Router();
+  const authenticate = createAuthenticationMiddleware(tokenService);
+  const requireChangedPassword = createMustChangePasswordGuard(userRepository);
+  router.post('/route-plans', authenticate, requireChangedPassword, new CreateRoutePlanController(createRoutePlanUseCase).handle);
+  router.post('/route-plans/:id/generate', authenticate, requireChangedPassword, new GenerateCyclingRouteController(generateCyclingRouteUseCase).handle);
+  return router;
+}
