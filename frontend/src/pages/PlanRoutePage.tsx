@@ -9,7 +9,7 @@ import type {
 } from "../types/route-plan";
 import { StartLocationMap } from "../components/StartLocationMap";
 export function PlanRoutePage() {
-  const { createRoutePlan, generateCyclingRoute, getRouteWeather, analyzeRouteWind } = useAuth();
+  const { createRoutePlan, generateCyclingRoute, getRouteWeather, analyzeRouteWind, downloadRouteGpx } = useAuth();
   const [form, setForm] = useState({
     startLocation: "",
     date: "",
@@ -26,6 +26,7 @@ export function PlanRoutePage() {
   const [loadingWeather, setLoadingWeather] = useState(false);
   const [windAnalysis, setWindAnalysis] = useState<WindAnalysisResponse | null>(null);
   const [analyzingWind, setAnalyzingWind] = useState(false);
+  const [downloadingGpx, setDownloadingGpx] = useState(false);
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (
@@ -93,6 +94,7 @@ export function PlanRoutePage() {
     }
   }
   async function analyzeWind() { if (!result) return; setAnalyzingWind(true); setError(""); try { setWindAnalysis(await analyzeRouteWind(result.id)); } catch (e) { setError(e instanceof ApiError ? e.message : "No se ha podido analizar el viento en la ruta."); } finally { setAnalyzingWind(false); } }
+  async function downloadGpx() { if (!result || !route) return; setDownloadingGpx(true); setError(""); try { await downloadRouteGpx(result.id); } catch { setError("No se ha podido generar el archivo GPX."); } finally { setDownloadingGpx(false); } }
   if (result)
     return (
       <section className="form-card success-card">
@@ -136,6 +138,7 @@ export function PlanRoutePage() {
             {generating ? (result.favorableWind ? "Comparando rutas según el viento..." : "Generando recorrido...") : (result.favorableWind ? "Buscar ruta favorable al viento" : "Generar recorrido")}
           </button>
         )}
+        {route && <button className="button button-primary" onClick={downloadGpx} disabled={downloadingGpx}>{downloadingGpx ? "Preparando GPX..." : "Descargar GPX"}</button>}
         <button
           className="button button-primary"
           onClick={loadWeather}

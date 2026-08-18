@@ -41,6 +41,11 @@ async function request<T>(path: string, options: RequestInit = {}, accessToken?:
   return data as T;
 }
 
+function filenameFromContentDisposition(value: string | null): string {
+  const match = value?.match(/filename="?([^";]+)"?/i);
+  return match?.[1] ?? 'cicloviento-ruta.gpx';
+}
+
 export const apiClient = {
   register(input: RegisterRequest): Promise<RegisterResponse> {
     return request('/users/register', { method: 'POST', body: JSON.stringify(input) });
@@ -63,4 +68,25 @@ export const apiClient = {
   },
   getRouteWeather(routePlanId: string, accessToken: string): Promise<RouteWeatherResponse> { return request(`/route-plans/${encodeURIComponent(routePlanId)}/weather`, {}, accessToken); },
   analyzeRouteWind(routePlanId:string,accessToken:string):Promise<WindAnalysisResponse>{return request(`/route-plans/${encodeURIComponent(routePlanId)}/wind-analysis`,{method:'POST'},accessToken);},
+  async downloadRouteGpx(routePlanId: string, accessToken: string): Promise<void> {
+    const response = await fetch(`${apiUrl}/route-plans/${encodeURIComponent(routePlanId)}/gpx`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!response.ok) {
+      const data: unknown = await response.json().catch(() => ({}));
+      const message = typeof data === 'object' && data !== null && 'message' in data && typeof data.message === 'string'
+        ? data.message
+        : 'No se ha podido generar el archivo GPX.';
+      throw new ApiError(response.status, message);
+    }
+
+    const objectUrl = URL.createObjectURL(await response.blob());
+    const link = document.createElement('a');
+    link.href = objectUrl;
+    link.download = filenameFromContentDisposition(response.headers.get('Content-Disposition'));
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(objectUrl);
+  },
 };

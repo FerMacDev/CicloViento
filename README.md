@@ -25,7 +25,7 @@ El proyecto está en una fase técnica inicial. Actualmente están preparados:
 - Geocodificación del punto de partida y mapa Leaflet/OpenStreetMap.
 - Generación manual de un recorrido ciclista circular de carretera con openrouteservice.
 
-Todavía están pendientes recuperación de contraseña, refresh tokens, optimización avanzada, GPX, IA y despliegue.
+Todavía están pendientes recuperación de contraseña, refresh tokens, optimización avanzada, integración Garmin/Strava, IA y despliegue.
 
 ## Stack tecnológico
 
@@ -169,7 +169,11 @@ La consulta explícita `GET /route-plans/:id/weather` usa Open-Meteo Forecast AP
 
 `POST /route-plans/:id/wind-analysis` requiere Bearer JWT y analiza el recorrido generado. Tailwind es viento favorable en el avance; headwind es contrario y crosswind lateral. La dirección meteorológica indica de dónde viene el viento. Los porcentajes se calculan por distancia y la vuelta se aproxima como la segunda mitad de la distancia. `favorableWindScore` va de 0 a 100: cuanto mayor, más favorable es el regreso según cola y lateral.
 
-Al activar **Ruta favorable al viento**, el backend compara hasta tres recorridos circulares con las semillas deterministas 1, 2 y 3. Descarta las alternativas cuya distancia se aleja más de un 20 % de la solicitada y selecciona el mayor score; en empate prefiere la distancia más próxima y después la semilla menor. La previsión se consulta una vez para el punto de salida y puede cambiar. Favorabilidad no equivale a seguridad: la interfaz advierte ante riesgo alto o peligroso y no presenta esas condiciones como seguras. Aún no hay optimización avanzada, hora de salida configurable, GPX ni IA.
+Al activar **Ruta favorable al viento**, el backend compara hasta tres recorridos circulares con las semillas deterministas 1, 2 y 3. Descarta las alternativas cuya distancia se aleja más de un 20 % de la solicitada y selecciona el mayor score; en empate prefiere la distancia más próxima y después la semilla menor. La previsión se consulta una vez para el punto de salida y puede cambiar. Favorabilidad no equivale a seguridad: la interfaz advierte ante riesgo alto o peligroso y no presenta esas condiciones como seguras. Aún no hay optimización avanzada, hora de salida configurable ni IA.
+
+## Descarga GPX
+
+Cuando hay una ruta generada, el botón **Descargar GPX** solicita `GET /route-plans/:id/gpx` con la sesión autenticada. El backend devuelve un archivo GPX 1.1 con la geometría real de la ruta mostrada en el mapa, sin inventar elevaciones, datos personales ni secretos. Para una ruta favorable al viento, reutiliza la candidata seleccionada por la misma lógica de optimización. Como la geometría no se persiste, una descarga posterior puede regenerar la ruta; aunque las semillas son deterministas, el proveedor de rutas podría evolucionar. No hay aún otros formatos ni integración directa con Garmin o Strava.
 
 ## Arquitectura
 

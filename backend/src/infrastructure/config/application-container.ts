@@ -13,6 +13,8 @@ import { GetRouteWeatherUseCase } from '../../application/use-cases/GetRouteWeat
 import { OpenMeteoWeatherService } from '../weather/open-meteo-weather-service.js';
 import { AnalyzePlannedRouteWindUseCase } from '../../application/use-cases/AnalyzePlannedRouteWindUseCase.js';
 import { GenerateWindOptimizedRouteUseCase } from '../../application/use-cases/GenerateWindOptimizedRouteUseCase.js';
+import { GenerateRouteGpxUseCase } from '../../application/use-cases/GenerateRouteGpxUseCase.js';
+import { XmlGpxGenerator } from '../../application/services/GpxGenerator.js';
 import { PrismaUserRepository } from '../database/prisma-user-repository.js';
 import type { UserRepository } from '../../domain/repositories/UserRepository.js';
 import { CryptoIdGenerator } from '../security/crypto-id-generator.js';
@@ -32,6 +34,7 @@ export interface ApplicationDependencies {
   generateCyclingRouteUseCase: GenerateCyclingRouteUseCase;
   getRouteWeatherUseCase: GetRouteWeatherUseCase;
   analyzePlannedRouteWindUseCase: AnalyzePlannedRouteWindUseCase;
+  generateRouteGpxUseCase: GenerateRouteGpxUseCase;
 }
 
 export function createRegisterUserUseCase(): RegisterUserUseCase {
@@ -58,6 +61,12 @@ export function createApplicationDependencies(): ApplicationDependencies {
     weatherService,
   );
 
+  const generateCyclingRouteUseCase = new GenerateCyclingRouteUseCase(
+    routePlanRepository,
+    routingService,
+    windOptimizedRouteUseCase,
+  );
+
   return {
     registerUserUseCase: new RegisterUserUseCase(
       userRepository,
@@ -76,12 +85,9 @@ export function createApplicationDependencies(): ApplicationDependencies {
     tokenService,
     userRepository,
     createRoutePlanUseCase: new CreateRoutePlanUseCase(routePlanRepository, new CryptoIdGenerator(), new NominatimGeocodingService(process.env.NOMINATIM_BASE_URL ?? 'https://nominatim.openstreetmap.org', process.env.NOMINATIM_USER_AGENT ?? 'CicloViento/1.0')),
-    generateCyclingRouteUseCase: new GenerateCyclingRouteUseCase(
-      routePlanRepository,
-      routingService,
-      windOptimizedRouteUseCase,
-    ),
+    generateCyclingRouteUseCase,
     getRouteWeatherUseCase: new GetRouteWeatherUseCase(routePlanRepository, weatherService),
     analyzePlannedRouteWindUseCase: new AnalyzePlannedRouteWindUseCase(routePlanRepository, routingService, weatherService),
+    generateRouteGpxUseCase: new GenerateRouteGpxUseCase(generateCyclingRouteUseCase, new XmlGpxGenerator()),
   };
 }

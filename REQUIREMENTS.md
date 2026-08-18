@@ -30,6 +30,7 @@ El alcance funcional se desarrollará de forma incremental. Este documento difer
 - Visualización del recorrido generado mediante una polyline de Leaflet/OpenStreetMap.
 - Consulta meteorológica de viento mediante Open-Meteo: velocidad, dirección, rachas y clasificación inicial de riesgo.
 - Selección básica de ruta favorable al viento: hasta tres candidatas deterministas, comparación de favorabilidad del regreso y ruta seleccionada.
+- Descarga protegida de la ruta generada en formato GPX 1.1, incluida la ruta seleccionada por viento.
 
 La generación circular pública actual está limitada a 100 km; RoutePlan sigue aceptando preferencias de hasta 300 km para futuras estrategias de routing.
 
@@ -71,7 +72,7 @@ La previsión de viento se consulta explícitamente para el punto de salida. Est
 
 ### Mapas y GPX
 
-El mapa visualiza el punto de partida y la geometría del recorrido generado. La importación o descarga de GPX siguen pendientes.
+El mapa visualiza el punto de partida y la geometría del recorrido generado. La ruta puede descargarse como GPX 1.1 desde una sesión autenticada; otros formatos e integraciones externas siguen pendientes.
 
 ### IA
 

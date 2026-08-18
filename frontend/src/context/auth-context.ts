@@ -14,6 +14,7 @@ export interface AuthContextValue {
   generateCyclingRoute(routePlanId: string): Promise<GeneratedRouteResponse>;
   getRouteWeather(routePlanId: string): Promise<RouteWeatherResponse>;
   analyzeRouteWind(routePlanId:string):Promise<WindAnalysisResponse>;
+  downloadRouteGpx(routePlanId: string): Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined);
