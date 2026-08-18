@@ -1,6 +1,7 @@
 import type { TokenService } from '../../application/services/TokenService.js';
 import { SimplePasswordPolicy } from '../../application/services/PasswordPolicy.js';
 import { ChangePasswordUseCase } from '../../application/use-cases/ChangePasswordUseCase.js';
+import { GetAuthenticatedUserUseCase } from '../../application/use-cases/GetAuthenticatedUserUseCase.js';
 import { LoginUserUseCase } from '../../application/use-cases/LoginUserUseCase.js';
 import { RegisterUserUseCase } from '../../application/use-cases/RegisterUserUseCase.js';
 import { PrismaUserRepository } from '../database/prisma-user-repository.js';
@@ -15,6 +16,7 @@ export interface ApplicationDependencies {
   registerUserUseCase: RegisterUserUseCase;
   loginUserUseCase: LoginUserUseCase;
   changePasswordUseCase: ChangePasswordUseCase;
+  getAuthenticatedUserUseCase: GetAuthenticatedUserUseCase;
   tokenService: TokenService;
   userRepository: UserRepository;
 }
@@ -48,6 +50,7 @@ export function createApplicationDependencies(): ApplicationDependencies {
       passwordHasher,
       new SimplePasswordPolicy(),
     ),
+    getAuthenticatedUserUseCase: new GetAuthenticatedUserUseCase(userRepository),
     tokenService,
     userRepository,
   };

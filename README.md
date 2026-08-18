@@ -21,6 +21,7 @@ El proyecto está en una fase técnica inicial. Actualmente están preparados:
 - Login mediante `POST /auth/login`, con JWT de acceso y respuesta segura del usuario.
 - Middleware Bearer reutilizable y endpoint técnico protegido `GET /auth/me`.
 - Cambio de contraseña mediante `POST /auth/change-password`, que actualiza el hash y desactiva `mustChangePassword`.
+- Frontend de inicio, registro, login, cambio obligatorio de contraseña y dashboard autenticado mínimo.
 
 Todavía están pendientes recuperación de contraseña, refresh tokens, frontend de login, rutas, meteorología, mapas, GPX, IA y despliegue.
 
@@ -101,6 +102,8 @@ El envío de credenciales usa el SDK oficial de Resend y requiere también `RESE
 
 La autenticación requiere `JWT_SECRET` en `backend/.env`; no debe versionarse ni sustituirse por un valor generado automáticamente. `JWT_EXPIRES_IN` es opcional y su valor predeterminado es `15m`.
 
+El frontend toma la URL pública del backend de `VITE_API_URL`. Copia `frontend/.env.example` a `frontend/.env` para ajustarla si el backend no usa `http://localhost:3000`.
+
 Una vez configurada la conexión, genera el cliente y aplica la migración pendiente:
 
 ```bash
@@ -138,7 +141,7 @@ GET /auth/me
 Authorization: Bearer <accessToken>
 ```
 
-Es un endpoint técnico protegido que comprueba el middleware JWT y devuelve únicamente el identificador autenticado. Tokens ausentes, inválidos o expirados devuelven `401`.
+Es un endpoint técnico protegido que comprueba el middleware JWT y devuelve únicamente datos públicos del usuario autenticado: identificador, nombre, apellidos, email y `mustChangePassword`. Tokens ausentes, inválidos o expirados devuelven `401`.
 
 ```text
 POST /auth/change-password
@@ -146,6 +149,12 @@ Authorization: Bearer <accessToken>
 ```
 
 Recibe `currentPassword` y `newPassword`; el usuario se obtiene exclusivamente del JWT. La nueva contraseña debe tener al menos 12 caracteres, una letra y un número, y ser distinta de la actual. Tras un cambio correcto se almacena un nuevo hash y `mustChangePassword` pasa a `false`. El JWT vigente no se reemplaza porque solo contiene identidad y expiración.
+
+## Frontend
+
+Las páginas disponibles son `/`, `/register`, `/login`, `/change-password` y `/dashboard`. Tras login, el frontend redirige a `/change-password` si `mustChangePassword` es `true`; en caso contrario abre el dashboard. La sesión se restaura con `GET /auth/me` al recargar y se elimina si el token deja de ser válido.
+
+Para este MVP, el access token y datos públicos del usuario se guardan mediante un servicio encapsulado sobre `localStorage`. No se guardan contraseñas ni hashes. Una evolución futura podrá sustituirlo por cookies HttpOnly coordinadas con el backend.
 
 ## Arquitectura
 

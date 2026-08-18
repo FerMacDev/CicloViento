@@ -103,6 +103,10 @@ PrismaUserRepository + ScryptPasswordHasher
 
 El controlador toma `userId` exclusivamente del contexto creado por el middleware JWT, nunca del body. Tras verificar la contraseña actual, ChangePasswordUseCase valida la nueva contraseña, genera su hash, actualiza el usuario y establece `mustChangePassword=false`. No emite otro JWT: el existente mantiene validez porque solo contiene `sub`, `iat` y `exp`.
 
+El frontend usa React Router, un AuthProvider y un cliente HTTP centralizado. AuthProvider encapsula el token y el usuario público mediante auth-storage sobre localStorage, una decisión de MVP que evita dispersar el acceso al navegador; no se persisten contraseñas ni hashes. Al iniciar, valida la sesión con `GET /auth/me`, que ahora obtiene el usuario mediante UserRepository y devuelve exclusivamente `id`, nombre, apellidos, email y `mustChangePassword`.
+
+ProtectedRoute redirige a login cuando no hay sesión y a cambio de contraseña cuando `mustChangePassword` está activo. ChangePasswordRoute permite únicamente esta operación hasta que se complete. El backend permite el origen local configurable mediante CORS, con `http://localhost:5173` como valor predeterminado de desarrollo.
+
 ## Arquitectura objetivo
 
 La arquitectura objetivo se construirá progresivamente. No está implementada todavía.

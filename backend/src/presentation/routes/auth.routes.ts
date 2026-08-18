@@ -2,6 +2,7 @@ import { Router } from 'express';
 
 import type { TokenService } from '../../application/services/TokenService.js';
 import type { ChangePasswordUseCase } from '../../application/use-cases/ChangePasswordUseCase.js';
+import type { GetAuthenticatedUserUseCase } from '../../application/use-cases/GetAuthenticatedUserUseCase.js';
 import type { LoginUserUseCase } from '../../application/use-cases/LoginUserUseCase.js';
 import { ChangePasswordController } from '../controllers/change-password-controller.js';
 import { AuthMeController } from '../controllers/auth-me-controller.js';
@@ -11,11 +12,12 @@ import { createAuthenticationMiddleware } from '../middlewares/authentication-mi
 export function createAuthRouter(
   loginUserUseCase: LoginUserUseCase,
   changePasswordUseCase: ChangePasswordUseCase,
+  getAuthenticatedUserUseCase: GetAuthenticatedUserUseCase,
   tokenService: TokenService,
 ): Router {
   const router = Router();
   const loginUserController = new LoginUserController(loginUserUseCase);
-  const authMeController = new AuthMeController();
+  const authMeController = new AuthMeController(getAuthenticatedUserUseCase);
   const changePasswordController = new ChangePasswordController(changePasswordUseCase);
   const authenticate = createAuthenticationMiddleware(tokenService);
 
