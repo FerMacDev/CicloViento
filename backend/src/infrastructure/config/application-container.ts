@@ -6,6 +6,7 @@ import { LoginUserUseCase } from '../../application/use-cases/LoginUserUseCase.j
 import { RegisterUserUseCase } from '../../application/use-cases/RegisterUserUseCase.js';
 import { CreateRoutePlanUseCase } from '../../application/use-cases/CreateRoutePlanUseCase.js';
 import { PrismaRoutePlanRepository } from '../database/prisma-route-plan-repository.js';
+import { NominatimGeocodingService } from '../geocoding/nominatim-geocoding-service.js';
 import { PrismaUserRepository } from '../database/prisma-user-repository.js';
 import type { UserRepository } from '../../domain/repositories/UserRepository.js';
 import { CryptoIdGenerator } from '../security/crypto-id-generator.js';
@@ -56,6 +57,6 @@ export function createApplicationDependencies(): ApplicationDependencies {
     getAuthenticatedUserUseCase: new GetAuthenticatedUserUseCase(userRepository),
     tokenService,
     userRepository,
-    createRoutePlanUseCase: new CreateRoutePlanUseCase(new PrismaRoutePlanRepository(), new CryptoIdGenerator()),
+    createRoutePlanUseCase: new CreateRoutePlanUseCase(new PrismaRoutePlanRepository(), new CryptoIdGenerator(), new NominatimGeocodingService(process.env.NOMINATIM_BASE_URL ?? 'https://nominatim.openstreetmap.org', process.env.NOMINATIM_USER_AGENT ?? 'CicloViento/1.0')),
   };
 }

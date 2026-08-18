@@ -158,4 +158,6 @@ El login permite autenticar una contraseña temporal y devuelve `mustChangePassw
 
 RoutePlan es el primer dominio ciclista. `POST /route-plans` aplica autenticación JWT, el guard de cambio obligatorio y CreateRoutePlanUseCase, que persiste la solicitud mediante RoutePlanRepository y PrismaRoutePlanRepository. El formulario protegido `/plan-route` almacena únicamente preferencias; routing, mapas, meteorología y optimización siguen fuera de alcance.
 
+La geocodificación sigue el flujo `startLocation → CreateRoutePlanUseCase → GeocodingService → NominatimGeocodingService → latitude/longitude → RoutePlan → PrismaRoutePlanRepository`. Application conoce solo el puerto GeocodingService; Nominatim, su caché en memoria y el límite de una solicitud por segundo pertenecen a Infrastructure y pueden sustituirse por otro proveedor. El frontend no llama a Nominatim: Leaflet y OpenStreetMap solo visualizan las coordenadas ya persistidas con un marcador de salida.
+
 Por tanto, la futura persistencia o los servicios externos podrán sustituirse sin introducir sus dependencias en las reglas de dominio.

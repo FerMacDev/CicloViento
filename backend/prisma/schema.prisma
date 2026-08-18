@@ -27,5 +27,7 @@ model RoutePlan {
   elevationGainM Int
   favorableWind Boolean @default(false)
   createdAt DateTime @default(now()) @db.Timestamptz(3)
+  latitude Float?
+  longitude Float?
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

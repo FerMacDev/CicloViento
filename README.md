@@ -156,7 +156,9 @@ Las páginas disponibles son `/`, `/register`, `/login`, `/change-password` y `/
 
 Para este MVP, el access token y datos públicos del usuario se guardan mediante un servicio encapsulado sobre `localStorage`. No se guardan contraseñas ni hashes. Una evolución futura podrá sustituirlo por cookies HttpOnly coordinadas con el backend.
 
-La página protegida `/plan-route` guarda una solicitud de planificación con punto de partida, fecha, distancia, desnivel y preferencia de viento mediante `POST /route-plans`. Aún no genera recorridos, mapas ni análisis meteorológico.
+La página protegida `/plan-route` guarda una solicitud de planificación con punto de partida, fecha, distancia, desnivel y preferencia de viento mediante `POST /route-plans`. Aún no genera recorridos ni análisis meteorológico.
+
+El backend geocodifica el punto de partida con Nominatim al guardar la planificación y persiste sus coordenadas. Para respetar el proveedor público, aplica una caché en memoria y limita las consultas a una por segundo; no hay autocomplete. Tras guardar, `/plan-route` muestra únicamente el punto de salida en Leaflet sobre OpenStreetMap, con su atribución visible. No existe todavía recorrido ciclista real, polyline ni análisis de viento. La configuración opcional usa `NOMINATIM_BASE_URL` y `NOMINATIM_USER_AGENT` (por defecto `CicloViento/1.0`), sin secretos.
 
 ## Arquitectura
 

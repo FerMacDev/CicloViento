@@ -25,6 +25,7 @@ El alcance funcional se desarrollará de forma incremental. Este documento difer
 - Cambio de contraseña autenticado, con verificación de la contraseña actual, nuevo hash y transición de `mustChangePassword` a `false`.
 - Frontend de registro, login, cambio obligatorio de contraseña, dashboard mínimo y cierre de sesión local.
 - Solicitud RoutePlan persistida con preferencias de ruta y formulario protegido `/plan-route`; no incluye generación real de recorridos.
+- Geocodificación del punto de partida, persistencia de latitude/longitude y mapa con marcador del punto de salida.
 
 Rutas ciclistas, integración meteorológica, mapas, GPX, IA y despliegue siguen pendientes.
 
