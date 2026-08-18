@@ -4,6 +4,7 @@ export interface UserProps {
   lastName: string;
   email: string;
   passwordHash: string;
+  mustChangePassword: boolean;
   createdAt: Date;
 }
 
@@ -21,6 +22,7 @@ export class User {
     public readonly lastName: string,
     public readonly email: string,
     public readonly passwordHash: string,
+    public readonly mustChangePassword: boolean,
     public readonly createdAt: Date,
   ) {}
 
@@ -37,7 +39,15 @@ export class User {
       throw new UserValidationError('Password hash is required.');
     }
 
-    return new User(props.id, firstName, lastName, email, props.passwordHash, props.createdAt);
+    return new User(
+      props.id,
+      firstName,
+      lastName,
+      email,
+      props.passwordHash,
+      props.mustChangePassword,
+      props.createdAt,
+    );
   }
 
   static normalizeEmail(email: string): string {

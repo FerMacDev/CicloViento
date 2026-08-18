@@ -18,7 +18,9 @@ El alcance funcional se desarrollará de forma incremental. Este documento difer
 - Infraestructura mínima de Prisma 7 para PostgreSQL: schema con el modelo User, cliente generado y proveedor en Infrastructure.
 - Migración User aplicada y conexión local con Supabase PostgreSQL validada.
 - Modelo User, entidad de dominio User, contrato UserRepository, adaptador PrismaUserRepository y caso de uso RegisterUser implementados.
-- Endpoint de registro `POST /users/register` validado con persistencia real, email único y hash de contraseña.
+- Endpoint de registro `POST /users/register` con email único, contraseña temporal generada por el backend y hash de contraseña.
+- Campo `mustChangePassword` inicializado en `true` para el futuro cambio obligatorio de contraseña.
+- Puerto EmailService preparado para el futuro envío de credenciales iniciales, sin proveedor externo integrado.
 
 Login, autenticación, rutas ciclistas, integración meteorológica, mapas, GPX, IA y despliegue siguen pendientes.
 
@@ -26,7 +28,7 @@ Login, autenticación, rutas ciclistas, integración meteorológica, mapas, GPX,
 
 ### Requisitos funcionales
 
-- **RF-001 — Gestión de usuarios:** el registro inicial está implementado con email único y almacenamiento de hash de contraseña. Login, perfiles y preferencias siguen pendientes.
+- **RF-001 — Gestión de usuarios:** el registro inicial recibe nombre, apellidos y email; genera una contraseña temporal segura, almacena únicamente su hash y marca el cambio de contraseña como obligatorio. El envío real de la contraseña por email, login, perfiles y preferencias siguen pendientes.
 - **RF-002 — Planificación de rutas:** considerar punto de partida, fecha, distancia y desnivel acumulado para la futura planificación de rutas.
 - **RF-003 — Meteorología:** consultar y presentar condiciones meteorológicas relevantes para una ruta planificada.
 - **RF-004 — Viento:** considerar velocidad y dirección del viento, e informar de condiciones potencialmente peligrosas.
@@ -44,7 +46,7 @@ Login, autenticación, rutas ciclistas, integración meteorológica, mapas, GPX,
 
 ### Seguridad
 
-La contraseña se procesa mediante hashing en Infrastructure y no se almacena en texto plano. La autenticación y autorización siguen pendientes; no existe login implementado en esta fase.
+La contraseña temporal se genera de forma segura en Infrastructure, se procesa mediante hashing y no se almacena en texto plano ni se devuelve por HTTP. La autenticación, autorización y el envío real por email siguen pendientes; no existe login implementado en esta fase.
 
 ### Gestión de usuarios
 

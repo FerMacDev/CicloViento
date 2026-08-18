@@ -16,8 +16,8 @@ backend/src/
 ### Capas actuales
 
 - **Domain:** entidades y reglas que no dependen de tecnologías externas. Incluye User y su contrato UserRepository. `HealthCheck` sigue siendo solo un ejemplo técnico.
-- **Application:** casos de uso y abstracciones de aplicación. Incluye RegisterUserUseCase, PasswordHasher e IdGenerator.
-- **Infrastructure:** detalles técnicos de configuración y persistencia. PrismaUserRepository implementa UserRepository; PrismaClient, el adaptador PostgreSQL, el generador de identificadores y el hashing `scrypt` permanecen en esta capa.
+- **Application:** casos de uso y abstracciones de aplicación. Incluye RegisterUserUseCase, PasswordGenerator, PasswordHasher, EmailService e IdGenerator.
+- **Infrastructure:** detalles técnicos de configuración y persistencia. PrismaUserRepository implementa UserRepository; PrismaClient, el adaptador PostgreSQL, el generador criptográfico de contraseñas, el hashing `scrypt` y la futura implementación de EmailService permanecen en esta capa.
 - **Presentation:** adaptación HTTP con Express, rutas y controllers. Incluye `POST /users/register` además del health check.
 - **main.ts:** punto de composición y arranque del servidor.
 
@@ -58,11 +58,15 @@ controller
   ↓
 RegisterUserUseCase
   ↓
+PasswordGenerator → PasswordHasher
+  ↓
 User + UserRepository
   ↓
 PrismaUserRepository
   ↓
 PrismaClient / PostgreSQL / Supabase
+  ↓
+EmailService (proveedor pendiente)
 ```
 
 ## Arquitectura objetivo
@@ -109,5 +113,7 @@ Presentation → Application → Domain
 Domain no debe depender de Infrastructure. En particular, Domain no puede importar Express, Prisma, Supabase, clientes HTTP ni proveedores externos.
 
 Infrastructure implementará los contratos definidos por Domain o Application cuando sea necesario. PrismaUserRepository implementa UserRepository, mientras que ScryptPasswordHasher e CryptoIdGenerator implementan contratos de Application. PrismaClient y su adaptador PostgreSQL quedan encapsulados en Infrastructure; Application y Domain no los importan. Este diseño sigue el principio de inversión de dependencias: las capas de alto nivel dependen de abstracciones, y los detalles tecnológicos se conectan desde los bordes de la aplicación.
+
+La contraseña temporal se genera y se entrega a EmailService solo en memoria; User persiste únicamente passwordHash y mustChangePassword. Sin un proveedor de email configurado, el endpoint rechaza nuevos registros antes de persistirlos. Cuando se integre un proveedor, un fallo posterior a la persistencia podría dejar un usuario sin credenciales entregadas. La estrategia propuesta para resolverlo es una cola transaccional u outbox: registrar el evento de entrega junto con el usuario y reintentar el envío de forma fiable. No se implementa todavía porque requiere decidir el proveedor y la infraestructura de mensajería.
 
 Por tanto, la futura persistencia o los servicios externos podrán sustituirse sin introducir sus dependencias en las reglas de dominio.

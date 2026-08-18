@@ -21,6 +21,7 @@ export class PrismaUserRepository implements UserRepository {
         lastName: user.lastName,
         email: user.email,
         passwordHash: user.passwordHash,
+        mustChangePassword: user.mustChangePassword,
         createdAt: user.createdAt,
       },
     });
@@ -35,6 +36,7 @@ export class PrismaUserRepository implements UserRepository {
       lastName: record.lastName,
       email: record.email,
       passwordHash: record.passwordHash,
+      mustChangePassword: record.mustChangePassword,
       createdAt: record.createdAt,
     });
   }

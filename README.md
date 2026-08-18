@@ -16,9 +16,10 @@ El proyecto está en una fase técnica inicial. Actualmente están preparados:
 - Endpoint técnico `GET /health`.
 - Conexión local validada con Supabase PostgreSQL mediante Prisma.
 - Modelo User y migración aplicados.
-- Registro de usuario validado, con hash de contraseña y email único.
+- Registro de usuario con contraseña temporal generada por el backend, hash `scrypt`, email único y `mustChangePassword=true`.
+- Puerto de envío de credenciales preparado; no hay proveedor de email integrado todavía.
 
-Todavía están pendientes login, autenticación, rutas, meteorología, mapas, GPX, IA y despliegue.
+Todavía están pendientes el proveedor real de email, login, autenticación, rutas, meteorología, mapas, GPX, IA y despliegue.
 
 ## Stack tecnológico
 
@@ -27,9 +28,11 @@ Todavía están pendientes login, autenticación, rutas, meteorología, mapas, G
 | Frontend | React, TypeScript, Vite |
 | Backend | Node.js, Express, TypeScript |
 | Arquitectura | Clean Architecture |
-| Persistencia preparada | Prisma 7, PostgreSQL y Supabase como proveedor previsto |
+| Persistencia | Prisma 7, PostgreSQL y Supabase como proveedor |
 
 La conexión local con Supabase PostgreSQL está validada. El único modelo definido es User, exclusivamente para el registro inicial.
+
+El endpoint `POST /users/register` recibe `firstName`, `lastName` y `email`. La contraseña temporal se genera en el backend, no se devuelve por HTTP y deberá enviarse por email cuando se seleccione un proveedor.
 
 ## Estructura del proyecto
 
