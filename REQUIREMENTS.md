@@ -15,14 +15,18 @@ El alcance funcional se desarrollará de forma incremental. Este documento difer
 - Backend inicial con Node.js, Express y TypeScript.
 - Clean Architecture inicial en el backend.
 - Endpoint técnico `GET /health`, que devuelve `{ "status": "ok" }`.
+- Infraestructura mínima de Prisma 7 para PostgreSQL: schema con el modelo User, cliente generado y proveedor en Infrastructure.
+- Migración User aplicada y conexión local con Supabase PostgreSQL validada.
+- Modelo User, entidad de dominio User, contrato UserRepository, adaptador PrismaUserRepository y caso de uso RegisterUser implementados.
+- Endpoint de registro `POST /users/register` validado con persistencia real, email único y hash de contraseña.
 
-No hay usuarios, autenticación, persistencia, rutas ciclistas, integración meteorológica, mapas, GPX, IA ni despliegue implementados.
+Login, autenticación, rutas ciclistas, integración meteorológica, mapas, GPX, IA y despliegue siguen pendientes.
 
 ## Planificado / pendiente
 
 ### Requisitos funcionales
 
-- **RF-001 — Gestión de usuarios:** permitir la gestión de usuarios y sus preferencias cuando se implemente la fase correspondiente.
+- **RF-001 — Gestión de usuarios:** el registro inicial está implementado con email único y almacenamiento de hash de contraseña. Login, perfiles y preferencias siguen pendientes.
 - **RF-002 — Planificación de rutas:** considerar punto de partida, fecha, distancia y desnivel acumulado para la futura planificación de rutas.
 - **RF-003 — Meteorología:** consultar y presentar condiciones meteorológicas relevantes para una ruta planificada.
 - **RF-004 — Viento:** considerar velocidad y dirección del viento, e informar de condiciones potencialmente peligrosas.
@@ -35,16 +39,16 @@ No hay usuarios, autenticación, persistencia, rutas ciclistas, integración met
 
 - **RNF-001 — Lenguaje y stack:** el código principal se desarrollará con TypeScript; el frontend utilizará React y Vite, y el backend Node.js y Express.
 - **RNF-002 — Arquitectura:** el backend debe mantener Clean Architecture y evitar dependencias tecnológicas en Domain.
-- **RNF-003 — Configuración:** secretos y configuración sensible deben gestionarse mediante variables de entorno.
+- **RNF-003 — Configuración:** secretos y configuración sensible deben gestionarse mediante variables de entorno. La plantilla de `DATABASE_URL` está disponible, pero una conexión real sigue pendiente de configuración local.
 - **RNF-004 — Calidad técnica:** el backend debe mantenerse compilable con TypeScript y verificarse después de cambios relevantes.
 
 ### Seguridad
 
-La autenticación, autorización y la gestión segura de datos de usuario están pendientes. No existe autenticación implementada en esta fase.
+La contraseña se procesa mediante hashing en Infrastructure y no se almacena en texto plano. La autenticación y autorización siguen pendientes; no existe login implementado en esta fase.
 
 ### Gestión de usuarios
 
-La creación de cuentas, registro, inicio de sesión, perfiles y preferencias están pendientes.
+El registro inicial está validado contra PostgreSQL. Inicio de sesión, perfiles y preferencias están pendientes.
 
 ### Planificación de rutas
 
@@ -76,4 +80,4 @@ No se ha definido un alcance adicional fuera de las funcionalidades planificadas
 
 ## Evolución futura
 
-Las futuras fases podrán incorporar la persistencia prevista con Supabase, PostgreSQL y Prisma, además de las funcionalidades de usuarios, rutas, meteorología, viento, mapas, GPX e IA descritas arriba. Ninguna de ellas está implementada actualmente.
+Las futuras fases podrán avanzar con login, perfiles y el resto de funcionalidades de usuarios, rutas, meteorología, viento, mapas, GPX e IA, manteniendo la separación arquitectónica actual.

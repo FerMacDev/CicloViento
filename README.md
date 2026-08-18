@@ -14,8 +14,11 @@ El proyecto está en una fase técnica inicial. Actualmente están preparados:
 - Backend inicial con Node.js, Express y TypeScript.
 - Clean Architecture inicial en el backend.
 - Endpoint técnico `GET /health`.
+- Conexión local validada con Supabase PostgreSQL mediante Prisma.
+- Modelo User y migración aplicados.
+- Registro de usuario validado, con hash de contraseña y email único.
 
-Todavía están pendientes usuarios, autenticación, Supabase, Prisma, rutas, meteorología, mapas, GPX, IA y despliegue.
+Todavía están pendientes login, autenticación, rutas, meteorología, mapas, GPX, IA y despliegue.
 
 ## Stack tecnológico
 
@@ -24,9 +27,9 @@ Todavía están pendientes usuarios, autenticación, Supabase, Prisma, rutas, me
 | Frontend | React, TypeScript, Vite |
 | Backend | Node.js, Express, TypeScript |
 | Arquitectura | Clean Architecture |
-| Persistencia prevista | Supabase, PostgreSQL, Prisma |
+| Persistencia preparada | Prisma 7, PostgreSQL y Supabase como proveedor previsto |
 
-La persistencia prevista no está configurada todavía.
+La conexión local con Supabase PostgreSQL está validada. El único modelo definido es User, exclusivamente para el registro inicial.
 
 ## Estructura del proyecto
 
@@ -84,6 +87,18 @@ cd backend
 npm run build
 ```
 
+### Configuración local de base de datos
+
+Prisma toma `DATABASE_URL` desde `backend/.env`. Copia `backend/.env.example` a `backend/.env` y completa la URL de conexión real de PostgreSQL/Supabase solo en tu entorno local. El archivo `.env` está ignorado por Git.
+
+Una vez configurada la conexión, genera el cliente y aplica la migración pendiente:
+
+```bash
+cd backend
+npm run prisma:generate
+npx prisma migrate deploy
+```
+
 ## Health check
 
 El único endpoint disponible en esta fase es técnico:
@@ -102,7 +117,7 @@ Respuesta:
 
 ## Arquitectura
 
-El backend separa Presentation, Application, Domain e Infrastructure. La arquitectura actual y la arquitectura objetivo están documentadas en `ARCHITECTURE.md`.
+El backend separa Presentation, Application, Domain e Infrastructure. El registro de usuario sigue este flujo sin exponer Prisma fuera de Infrastructure: ruta, controller, caso de uso, contrato de repositorio y adaptador Prisma. La arquitectura actual y la arquitectura objetivo están documentadas en `ARCHITECTURE.md`.
 
 ## Requisitos
 

@@ -30,7 +30,7 @@ El lenguaje principal del proyecto es TypeScript.
 
 ## Database
 
-La persistencia prevista utilizará Supabase, PostgreSQL y Prisma. Todavía no está implementada ni configurada.
+La persistencia utiliza Supabase como proveedor de PostgreSQL y Prisma como ORM. La conexión local y la migración User han sido validadas. Los detalles de Prisma, PostgreSQL y hashing de contraseñas permanecen encapsulados en Infrastructure.
 
 ## Architecture
 
