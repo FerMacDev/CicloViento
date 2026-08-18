@@ -156,4 +156,6 @@ La contraseña temporal se genera y se entrega a EmailService solo en memoria; U
 
 El login permite autenticar una contraseña temporal y devuelve `mustChangePassword` como dato público de contexto. El cambio de contraseña puede hacerse tanto de forma obligatoria como voluntaria y exige siempre la contraseña actual. El guard `createMustChangePasswordGuard` es reutilizable para futuras rutas normales: consulta el usuario mediante UserRepository y devuelve `403` mientras `mustChangePassword` sea `true`; login, contexto mínimo y cambio de contraseña no se bloquean.
 
+RoutePlan es el primer dominio ciclista. `POST /route-plans` aplica autenticación JWT, el guard de cambio obligatorio y CreateRoutePlanUseCase, que persiste la solicitud mediante RoutePlanRepository y PrismaRoutePlanRepository. El formulario protegido `/plan-route` almacena únicamente preferencias; routing, mapas, meteorología y optimización siguen fuera de alcance.
+
 Por tanto, la futura persistencia o los servicios externos podrán sustituirse sin introducir sus dependencias en las reglas de dominio.

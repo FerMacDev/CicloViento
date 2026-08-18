@@ -156,6 +156,8 @@ Las páginas disponibles son `/`, `/register`, `/login`, `/change-password` y `/
 
 Para este MVP, el access token y datos públicos del usuario se guardan mediante un servicio encapsulado sobre `localStorage`. No se guardan contraseñas ni hashes. Una evolución futura podrá sustituirlo por cookies HttpOnly coordinadas con el backend.
 
+La página protegida `/plan-route` guarda una solicitud de planificación con punto de partida, fecha, distancia, desnivel y preferencia de viento mediante `POST /route-plans`. Aún no genera recorridos, mapas ni análisis meteorológico.
+
 ## Arquitectura
 
 El backend separa Presentation, Application, Domain e Infrastructure. El registro de usuario sigue este flujo sin exponer Prisma fuera de Infrastructure: ruta, controller, caso de uso, contrato de repositorio y adaptador Prisma. La arquitectura actual y la arquitectura objetivo están documentadas en `ARCHITECTURE.md`.

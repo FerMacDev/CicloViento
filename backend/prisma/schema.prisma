@@ -15,4 +15,17 @@ model User {
   passwordHash String
   mustChangePassword Boolean @default(true)
   createdAt    DateTime @default(now()) @db.Timestamptz(3)
+  routePlans RoutePlan[]
+}
+
+model RoutePlan {
+  id String @id @db.Uuid
+  userId String @db.Uuid
+  startLocation String
+  date DateTime @db.Date
+  distanceKm Float
+  elevationGainM Int
+  favorableWind Boolean @default(false)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

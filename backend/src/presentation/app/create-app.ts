@@ -6,6 +6,9 @@ import type { LoginUserUseCase } from '../../application/use-cases/LoginUserUseC
 import type { ChangePasswordUseCase } from '../../application/use-cases/ChangePasswordUseCase.js';
 import type { GetAuthenticatedUserUseCase } from '../../application/use-cases/GetAuthenticatedUserUseCase.js';
 import type { RegisterUserUseCase } from '../../application/use-cases/RegisterUserUseCase.js';
+import type { CreateRoutePlanUseCase } from '../../application/use-cases/CreateRoutePlanUseCase.js';
+import type { UserRepository } from '../../domain/repositories/UserRepository.js';
+import { createRoutePlansRouter } from '../routes/route-plans.routes.js';
 import { errorHandler } from '../middlewares/error-handler.js';
 import { createAuthRouter } from '../routes/auth.routes.js';
 import { createHealthRouter } from '../routes/health.routes.js';
@@ -17,6 +20,8 @@ export interface AppDependencies {
   changePasswordUseCase: ChangePasswordUseCase;
   getAuthenticatedUserUseCase: GetAuthenticatedUserUseCase;
   tokenService: TokenService;
+  createRoutePlanUseCase: CreateRoutePlanUseCase;
+  userRepository: UserRepository;
 }
 
 export function createApp(dependencies: AppDependencies, corsOrigin: string): Express {
@@ -32,6 +37,7 @@ export function createApp(dependencies: AppDependencies, corsOrigin: string): Ex
     dependencies.getAuthenticatedUserUseCase,
     dependencies.tokenService,
   ));
+  app.use(createRoutePlansRouter(dependencies.createRoutePlanUseCase, dependencies.tokenService, dependencies.userRepository));
   app.use(errorHandler);
 
   return app;

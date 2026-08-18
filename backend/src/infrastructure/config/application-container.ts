@@ -4,6 +4,8 @@ import { ChangePasswordUseCase } from '../../application/use-cases/ChangePasswor
 import { GetAuthenticatedUserUseCase } from '../../application/use-cases/GetAuthenticatedUserUseCase.js';
 import { LoginUserUseCase } from '../../application/use-cases/LoginUserUseCase.js';
 import { RegisterUserUseCase } from '../../application/use-cases/RegisterUserUseCase.js';
+import { CreateRoutePlanUseCase } from '../../application/use-cases/CreateRoutePlanUseCase.js';
+import { PrismaRoutePlanRepository } from '../database/prisma-route-plan-repository.js';
 import { PrismaUserRepository } from '../database/prisma-user-repository.js';
 import type { UserRepository } from '../../domain/repositories/UserRepository.js';
 import { CryptoIdGenerator } from '../security/crypto-id-generator.js';
@@ -19,6 +21,7 @@ export interface ApplicationDependencies {
   getAuthenticatedUserUseCase: GetAuthenticatedUserUseCase;
   tokenService: TokenService;
   userRepository: UserRepository;
+  createRoutePlanUseCase: CreateRoutePlanUseCase;
 }
 
 export function createRegisterUserUseCase(): RegisterUserUseCase {
@@ -53,5 +56,6 @@ export function createApplicationDependencies(): ApplicationDependencies {
     getAuthenticatedUserUseCase: new GetAuthenticatedUserUseCase(userRepository),
     tokenService,
     userRepository,
+    createRoutePlanUseCase: new CreateRoutePlanUseCase(new PrismaRoutePlanRepository(), new CryptoIdGenerator()),
   };
 }

@@ -1,0 +1,5 @@
+import type { RoutePlan as PrismaRoutePlan } from './generated/client.js';
+import { RoutePlan } from '../../domain/entities/RoutePlan.js';
+import type { RoutePlanRepository } from '../../domain/repositories/RoutePlanRepository.js';
+import { getPrismaClient } from './prisma-client-provider.js';
+export class PrismaRoutePlanRepository implements RoutePlanRepository { async save(plan: RoutePlan): Promise<RoutePlan> { const record = await getPrismaClient().routePlan.create({ data: { id: plan.id, userId: plan.userId, startLocation: plan.startLocation, date: new Date(`${plan.date}T00:00:00.000Z`), distanceKm: plan.distanceKm, elevationGainM: plan.elevationGainM, favorableWind: plan.favorableWind, createdAt: plan.createdAt } }); return this.toDomain(record); } private toDomain(record: PrismaRoutePlan): RoutePlan { return RoutePlan.create({ id: record.id, userId: record.userId, startLocation: record.startLocation, date: record.date.toISOString().slice(0, 10), distanceKm: record.distanceKm, elevationGainM: record.elevationGainM, favorableWind: record.favorableWind, createdAt: record.createdAt }); } }

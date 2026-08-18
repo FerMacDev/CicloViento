@@ -3,6 +3,7 @@ import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { apiClient } from '../services/api-client';
 import { authStorage } from '../services/auth-storage';
 import type { User } from '../types/auth';
+import type { RoutePlanRequest, RoutePlanResponse } from '../types/route-plan';
 import { AuthContext, type AuthContextValue } from './auth-context';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -51,6 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       authStorage.clear();
     },
+    async createRoutePlan(input: RoutePlanRequest): Promise<RoutePlanResponse> { if (!accessToken) throw new Error('No active session.'); return apiClient.createRoutePlan(input, accessToken); },
   }), [accessToken, isRestoring, user]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
