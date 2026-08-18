@@ -25,7 +25,7 @@ El proyecto está en una fase técnica inicial. Actualmente están preparados:
 - Geocodificación del punto de partida y mapa Leaflet/OpenStreetMap.
 - Generación manual de un recorrido ciclista circular de carretera con openrouteservice.
 
-Todavía están pendientes recuperación de contraseña, refresh tokens, meteorología, optimización por viento, GPX, IA y despliegue.
+Todavía están pendientes recuperación de contraseña, refresh tokens, optimización por viento, GPX, IA y despliegue.
 
 ## Stack tecnológico
 
@@ -162,6 +162,8 @@ La página protegida `/plan-route` guarda una solicitud de planificación con pu
 
 El backend geocodifica el punto de partida con Nominatim al guardar la planificación y persiste sus coordenadas. Para respetar el proveedor público, aplica una caché en memoria y limita las consultas a una por segundo; no hay autocomplete. La configuración opcional usa `NOMINATIM_BASE_URL` y `NOMINATIM_USER_AGENT` (por defecto `CicloViento/1.0`), sin secretos.
 El botón **Generar recorrido** llama de forma explícita a `POST /route-plans/:id/generate`. El backend usa openrouteservice Directions v2 con perfil `cycling-road`, round-trip y respuesta GeoJSON; la clave `ORS_API_KEY` se configura exclusivamente en `backend/.env` y nunca se expone al frontend. La API pública de ORS limita los recorridos circulares a 100 km: no se genera ni trunca una ruta superior. El mapa muestra la polyline real devuelta y distingue la distancia solicitada de la generada. La preferencia de viento no modifica aún la ruta: su optimización sigue pendiente del análisis meteorológico.
+
+La consulta explícita `GET /route-plans/:id/weather` usa Open-Meteo Forecast API sin API key para este uso. Muestra velocidad, rachas, dirección meteorológica y nivel de riesgo. Sin una hora en RoutePlan, utiliza las 09:00 locales como referencia provisional. La interfaz atribuye los datos a Open-Meteo; no existe todavía optimización por viento.
 
 ## Arquitectura
 

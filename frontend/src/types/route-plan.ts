@@ -13,3 +13,4 @@ export interface GeneratedRouteResponse {
   start: RouteCoordinate;
   geometry: RouteCoordinate[];
 }
+export interface RouteWeatherResponse { routePlanId: string; forecastDateTime: string; windSpeedKmh: number; windDirectionDegrees: number; windGustKmh: number; windDirectionCardinal: string; riskLevel: 'normal' | 'caution' | 'high' | 'dangerous'; }

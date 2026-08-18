@@ -9,6 +9,8 @@ import { PrismaRoutePlanRepository } from '../database/prisma-route-plan-reposit
 import { NominatimGeocodingService } from '../geocoding/nominatim-geocoding-service.js';
 import { OpenRouteServiceRoutingService } from '../routing/open-route-service-routing-service.js';
 import { GenerateCyclingRouteUseCase } from '../../application/use-cases/GenerateCyclingRouteUseCase.js';
+import { GetRouteWeatherUseCase } from '../../application/use-cases/GetRouteWeatherUseCase.js';
+import { OpenMeteoWeatherService } from '../weather/open-meteo-weather-service.js';
 import { PrismaUserRepository } from '../database/prisma-user-repository.js';
 import type { UserRepository } from '../../domain/repositories/UserRepository.js';
 import { CryptoIdGenerator } from '../security/crypto-id-generator.js';
@@ -26,6 +28,7 @@ export interface ApplicationDependencies {
   userRepository: UserRepository;
   createRoutePlanUseCase: CreateRoutePlanUseCase;
   generateCyclingRouteUseCase: GenerateCyclingRouteUseCase;
+  getRouteWeatherUseCase: GetRouteWeatherUseCase;
 }
 
 export function createRegisterUserUseCase(): RegisterUserUseCase {
@@ -67,5 +70,6 @@ export function createApplicationDependencies(): ApplicationDependencies {
       routePlanRepository,
       new OpenRouteServiceRoutingService(process.env.ORS_API_KEY),
     ),
+    getRouteWeatherUseCase: new GetRouteWeatherUseCase(routePlanRepository, new OpenMeteoWeatherService()),
   };
 }

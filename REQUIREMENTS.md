@@ -28,6 +28,7 @@ El alcance funcional se desarrollará de forma incremental. Este documento difer
 - Geocodificación del punto de partida, persistencia de latitude/longitude y mapa con marcador del punto de salida.
 - Generación explícita de un recorrido ciclista circular real mediante openrouteservice, perfil `cycling-road` y geometría GeoJSON.
 - Visualización del recorrido generado mediante una polyline de Leaflet/OpenStreetMap.
+- Consulta meteorológica de viento mediante Open-Meteo: velocidad, dirección, rachas y clasificación inicial de riesgo.
 
 La optimización por viento, integración meteorológica, GPX, IA y despliegue siguen pendientes. La generación circular pública actual está limitada a 100 km; RoutePlan sigue aceptando preferencias de hasta 300 km para futuras estrategias de routing.
 
@@ -65,7 +66,7 @@ La solicitud de planificación, geocodificación y generación de un único reco
 
 ### Meteorología y viento
 
-No hay integración con proveedores meteorológicos ni cálculo de condiciones de viento. Su incorporación se realizará en una fase posterior.
+La previsión de viento se consulta explícitamente para el punto de salida. No existe todavía análisis por segmentos, optimización de ruta ni recomendación favorable al viento.
 
 ### Mapas y GPX
 

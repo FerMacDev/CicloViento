@@ -184,4 +184,6 @@ El round-trip de la API pública actual de ORS está limitado a 100 km. RoutePla
 
 La propiedad se verifica en el caso de uso. Una planificación inexistente y una planificación de otro usuario se devuelven ambas como 404, para no revelar su existencia.
 
+La meteorología sigue el flujo `GET /route-plans/:id/weather → GetRouteWeatherUseCase → WeatherService → OpenMeteoWeatherService`. El adaptador solicita exclusivamente `wind_speed_10m`, `wind_direction_10m` y `wind_gusts_10m`, en km/h, con `timezone=auto` y sin enviar datos personales. Como RoutePlan no contiene hora, se selecciona provisionalmente 09:00 local. WindForecast no se persiste. La dirección usa la convención meteorológica (0° Norte, 90° Este; indica de dónde viene el viento). WindRiskLevel usa el valor más desfavorable entre viento y rachas: <25 normal, 25–39 caution, 40–49 high y ≥50 dangerous.
+
 Por tanto, la futura persistencia o los servicios externos podrán sustituirse sin introducir sus dependencias en las reglas de dominio.

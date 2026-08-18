@@ -1,0 +1,6 @@
+import type { RoutePlanRepository } from '../../domain/repositories/RoutePlanRepository.js';
+import { classifyWindRisk, windDirectionCardinal, type WindRiskLevel } from '../services/WindRisk.js';
+import type { WeatherService, WindForecast } from '../services/WeatherService.js';
+export class RoutePlanWeatherNotFoundError extends Error { constructor() { super('Route plan was not found.'); this.name = 'RoutePlanWeatherNotFoundError'; } }
+export interface RouteWeatherResult { routePlanId: string; forecast: WindForecast; windDirectionCardinal: string; riskLevel: WindRiskLevel; }
+export class GetRouteWeatherUseCase { constructor(private readonly repository: RoutePlanRepository, private readonly weatherService: WeatherService) {} async execute(routePlanId: string, userId: string): Promise<RouteWeatherResult> { const plan = await this.repository.findById(routePlanId); if (!plan || plan.userId !== userId) throw new RoutePlanWeatherNotFoundError(); const forecast = await this.weatherService.getWindForecast({ latitude: plan.latitude, longitude: plan.longitude, date: plan.date, referenceHour: 9 }); return { routePlanId: plan.id, forecast, windDirectionCardinal: windDirectionCardinal(forecast.windDirectionDegrees), riskLevel: classifyWindRisk(forecast) }; } }

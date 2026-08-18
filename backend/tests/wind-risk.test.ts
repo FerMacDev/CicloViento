@@ -1,0 +1,3 @@
+import assert from 'node:assert/strict'; import test from 'node:test'; import { classifyWindRisk, windDirectionCardinal } from '../src/application/services/WindRisk.js';
+for (const [value, expected] of [[24, 'normal'], [25, 'caution'], [39, 'caution'], [40, 'high'], [49, 'high'], [51, 'dangerous']] as const) test(`wind risk ${value}`, () => assert.equal(classifyWindRisk({ windSpeedKmh: value, windGustKmh: 0 }), expected));
+test('gusts use the most adverse value and cardinal direction retains meteorological degrees', () => { assert.equal(classifyWindRisk({ windSpeedKmh: 28, windGustKmh: 47 }), 'high'); assert.equal(windDirectionCardinal(270), 'W'); });
