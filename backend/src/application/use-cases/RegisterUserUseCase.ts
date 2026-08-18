@@ -65,19 +65,17 @@ export class RegisterUserUseCase {
       createdAt: new Date(),
     });
 
-    const savedUser = await this.userRepository.save(user);
-
     try {
       await this.emailService.sendInitialCredentials({
-        recipientEmail: savedUser.email,
-        recipientFirstName: savedUser.firstName,
+        recipientEmail: user.email,
+        recipientFirstName: user.firstName,
         temporaryPassword,
       });
     } catch {
       throw new InitialCredentialsDeliveryError();
     }
 
-    return savedUser;
+    return this.userRepository.save(user);
   }
 }
 

@@ -8,12 +8,17 @@ import type { PasswordGenerator } from '../src/application/services/PasswordGene
 import type { PasswordHasher } from '../src/application/services/PasswordHasher.js';
 import {
   EmailAlreadyRegisteredError,
+  InitialCredentialsDeliveryError,
   RegisterUserUseCase,
 } from '../src/application/use-cases/RegisterUserUseCase.js';
 import { User } from '../src/domain/entities/User.js';
 import type { UserRepository } from '../src/domain/repositories/UserRepository.js';
 import { RegisterUserController } from '../src/presentation/controllers/register-user-controller.js';
 import { SecurePasswordGenerator } from '../src/infrastructure/security/secure-password-generator.js';
+import {
+  ResendEmailService,
+  type ResendEmailClient,
+} from '../src/infrastructure/email/resend-email-service.js';
 
 class InMemoryUserRepository implements UserRepository {
   readonly users = new Map<string, User>();
@@ -57,6 +62,16 @@ class FakeEmailService implements EmailService {
 
   async sendInitialCredentials(email: InitialCredentialsEmail): Promise<void> {
     this.sent = email;
+  }
+}
+
+class FailingEmailService implements EmailService {
+  isAvailable(): boolean {
+    return true;
+  }
+
+  async sendInitialCredentials(_email: InitialCredentialsEmail): Promise<void> {
+    throw new Error('Delivery failed');
   }
 }
 
@@ -125,6 +140,24 @@ test('RegisterUserUseCase rejects duplicate emails without generating credential
   assert.equal(fixture.passwordGenerator.calls, 1);
 });
 
+test('RegisterUserUseCase does not persist a user when credential delivery fails', async () => {
+  const userRepository = new InMemoryUserRepository();
+  const useCase = new RegisterUserUseCase(
+    userRepository,
+    new FakePasswordGenerator(),
+    new FakePasswordHasher(),
+    new FailingEmailService(),
+    new FakeIdGenerator(),
+  );
+
+  await assert.rejects(
+    () => useCase.execute({ firstName: 'Usuario', lastName: 'Prueba', email: 'usuario@example.com' }),
+    InitialCredentialsDeliveryError,
+  );
+
+  assert.equal(userRepository.users.size, 0);
+});
+
 test('RegisterUserController does not expose temporary credentials or password hashes', async () => {
   const fixture = createFixture();
   const controller = new RegisterUserController(fixture.useCase);
@@ -153,6 +186,46 @@ test('RegisterUserController does not expose temporary credentials or password h
   assert.equal('passwordHash' in (responseBody ?? {}), false);
   assert.equal('password' in (responseBody ?? {}), false);
   assert.equal('temporaryPassword' in (responseBody ?? {}), false);
+});
+
+test('ResendEmailService adapts the EmailService port without a real email request', async () => {
+  let sentEmail: Parameters<ResendEmailClient['emails']['send']>[0] | undefined;
+  const resendClient: ResendEmailClient = {
+    emails: {
+      send: async (email) => {
+        sentEmail = email;
+        return { error: null };
+      },
+    },
+  };
+  const password = `generated-${Date.now()}`;
+  const service = new ResendEmailService(resendClient, 'CicloViento <no-reply@example.com>');
+
+  await service.sendInitialCredentials({
+    recipientEmail: 'usuario@example.com',
+    recipientFirstName: 'Usuario',
+    temporaryPassword: password,
+  });
+
+  assert.equal(sentEmail?.from, 'CicloViento <no-reply@example.com>');
+  assert.deepEqual(sentEmail?.to, ['usuario@example.com']);
+  assert.match(sentEmail?.text ?? '', new RegExp(password));
+  assert.match(sentEmail?.text ?? '', /cambiar esta contraseña/i);
+});
+
+test('ResendEmailService reports provider failures through the port', async () => {
+  const resendClient: ResendEmailClient = {
+    emails: {
+      send: async () => ({ error: { message: 'Provider unavailable' } }),
+    },
+  };
+  const service = new ResendEmailService(resendClient, 'CicloViento <no-reply@example.com>');
+
+  await assert.rejects(() => service.sendInitialCredentials({
+    recipientEmail: 'usuario@example.com',
+    recipientFirstName: 'Usuario',
+    temporaryPassword: `generated-${Date.now()}`,
+  }));
 });
 
 test('Domain and Application do not depend on infrastructure technologies', async () => {

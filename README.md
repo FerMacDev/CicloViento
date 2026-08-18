@@ -17,9 +17,9 @@ El proyecto está en una fase técnica inicial. Actualmente están preparados:
 - Conexión local validada con Supabase PostgreSQL mediante Prisma.
 - Modelo User y migración aplicados.
 - Registro de usuario con contraseña temporal generada por el backend, hash `scrypt`, email único y `mustChangePassword=true`.
-- Puerto de envío de credenciales preparado; no hay proveedor de email integrado todavía.
+- Resend integrado como proveedor de correo transaccional para las credenciales iniciales.
 
-Todavía están pendientes el proveedor real de email, login, autenticación, rutas, meteorología, mapas, GPX, IA y despliegue.
+Todavía están pendientes la validación de entrega real de email, login, autenticación, rutas, meteorología, mapas, GPX, IA y despliegue.
 
 ## Stack tecnológico
 
@@ -32,7 +32,7 @@ Todavía están pendientes el proveedor real de email, login, autenticación, ru
 
 La conexión local con Supabase PostgreSQL está validada. El único modelo definido es User, exclusivamente para el registro inicial.
 
-El endpoint `POST /users/register` recibe `firstName`, `lastName` y `email`. La contraseña temporal se genera en el backend, no se devuelve por HTTP y deberá enviarse por email cuando se seleccione un proveedor.
+El endpoint `POST /users/register` recibe `firstName`, `lastName` y `email`. La contraseña temporal se genera en el backend, no se devuelve por HTTP y se entrega mediante Resend cuando la configuración local sea válida.
 
 ## Estructura del proyecto
 
@@ -93,6 +93,8 @@ npm run build
 ### Configuración local de base de datos
 
 Prisma toma `DATABASE_URL` desde `backend/.env`. Copia `backend/.env.example` a `backend/.env` y completa la URL de conexión real de PostgreSQL/Supabase solo en tu entorno local. El archivo `.env` está ignorado por Git.
+
+El envío de credenciales usa el SDK oficial de Resend y requiere también `RESEND_API_KEY` y `EMAIL_FROM` en `backend/.env`. El remitente debe pertenecer a un dominio verificado en Resend. No incluyas estos valores en archivos versionados.
 
 Una vez configurada la conexión, genera el cliente y aplica la migración pendiente:
 
