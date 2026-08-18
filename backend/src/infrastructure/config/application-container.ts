@@ -11,6 +11,7 @@ import { OpenRouteServiceRoutingService } from '../routing/open-route-service-ro
 import { GenerateCyclingRouteUseCase } from '../../application/use-cases/GenerateCyclingRouteUseCase.js';
 import { GetRouteWeatherUseCase } from '../../application/use-cases/GetRouteWeatherUseCase.js';
 import { OpenMeteoWeatherService } from '../weather/open-meteo-weather-service.js';
+import { AnalyzePlannedRouteWindUseCase } from '../../application/use-cases/AnalyzePlannedRouteWindUseCase.js';
 import { PrismaUserRepository } from '../database/prisma-user-repository.js';
 import type { UserRepository } from '../../domain/repositories/UserRepository.js';
 import { CryptoIdGenerator } from '../security/crypto-id-generator.js';
@@ -29,6 +30,7 @@ export interface ApplicationDependencies {
   createRoutePlanUseCase: CreateRoutePlanUseCase;
   generateCyclingRouteUseCase: GenerateCyclingRouteUseCase;
   getRouteWeatherUseCase: GetRouteWeatherUseCase;
+  analyzePlannedRouteWindUseCase: AnalyzePlannedRouteWindUseCase;
 }
 
 export function createRegisterUserUseCase(): RegisterUserUseCase {
@@ -71,5 +73,6 @@ export function createApplicationDependencies(): ApplicationDependencies {
       new OpenRouteServiceRoutingService(process.env.ORS_API_KEY),
     ),
     getRouteWeatherUseCase: new GetRouteWeatherUseCase(routePlanRepository, new OpenMeteoWeatherService()),
+    analyzePlannedRouteWindUseCase: new AnalyzePlannedRouteWindUseCase(routePlanRepository,new OpenRouteServiceRoutingService(process.env.ORS_API_KEY),new OpenMeteoWeatherService()),
   };
 }

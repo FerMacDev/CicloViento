@@ -6,7 +6,7 @@ import type {
   RegisterResponse,
   User,
 } from '../types/auth';
-import type { GeneratedRouteResponse, RoutePlanRequest, RoutePlanResponse, RouteWeatherResponse } from '../types/route-plan';
+import type { GeneratedRouteResponse, RoutePlanRequest, RoutePlanResponse, RouteWeatherResponse, WindAnalysisResponse } from '../types/route-plan';
 
 const apiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
@@ -62,4 +62,5 @@ export const apiClient = {
     return request(`/route-plans/${encodeURIComponent(routePlanId)}/generate`, { method: 'POST' }, accessToken);
   },
   getRouteWeather(routePlanId: string, accessToken: string): Promise<RouteWeatherResponse> { return request(`/route-plans/${encodeURIComponent(routePlanId)}/weather`, {}, accessToken); },
+  analyzeRouteWind(routePlanId:string,accessToken:string):Promise<WindAnalysisResponse>{return request(`/route-plans/${encodeURIComponent(routePlanId)}/wind-analysis`,{method:'POST'},accessToken);},
 };

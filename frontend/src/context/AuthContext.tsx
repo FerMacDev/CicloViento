@@ -55,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async createRoutePlan(input: RoutePlanRequest): Promise<RoutePlanResponse> { if (!accessToken) throw new Error('No active session.'); return apiClient.createRoutePlan(input, accessToken); },
     async generateCyclingRoute(routePlanId: string) { if (!accessToken) throw new Error('No active session.'); return apiClient.generateCyclingRoute(routePlanId, accessToken); },
     async getRouteWeather(routePlanId: string) { if (!accessToken) throw new Error('No active session.'); return apiClient.getRouteWeather(routePlanId, accessToken); },
+    async analyzeRouteWind(routePlanId:string) { if (!accessToken) throw new Error('No active session.'); return apiClient.analyzeRouteWind(routePlanId,accessToken); },
   }), [accessToken, isRestoring, user]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

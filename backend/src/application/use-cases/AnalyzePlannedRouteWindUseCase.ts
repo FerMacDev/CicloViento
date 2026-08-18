@@ -1,0 +1,7 @@
+import type { RoutePlanRepository } from '../../domain/repositories/RoutePlanRepository.js';
+import type { RoutingService } from '../services/RoutingService.js';
+import type { WeatherService } from '../services/WeatherService.js';
+import { WindRouteAnalyzer } from '../services/WindRouteAnalyzer.js';
+import { classifyWindRisk, windDirectionCardinal } from '../services/WindRisk.js';
+export class PlannedRouteNotFoundError extends Error { constructor(){ super('Route plan was not found.'); } }
+export class AnalyzePlannedRouteWindUseCase { constructor(private readonly repository:RoutePlanRepository,private readonly routing:RoutingService,private readonly weather:WeatherService,private readonly analyzer=new WindRouteAnalyzer()){} async execute(id:string,userId:string){const plan=await this.repository.findById(id);if(!plan||plan.userId!==userId)throw new PlannedRouteNotFoundError();const [route,forecast]=await Promise.all([this.routing.generateRoundTrip({start:{latitude:plan.latitude,longitude:plan.longitude},targetDistanceKm:plan.distanceKm}),this.weather.getWindForecast({latitude:plan.latitude,longitude:plan.longitude,date:plan.date,referenceHour:9})]);return {routePlanId:plan.id,wind:{speedKmh:forecast.windSpeedKmh,gustKmh:forecast.windGustKmh,directionDegrees:forecast.windDirectionDegrees,directionCardinal:windDirectionCardinal(forecast.windDirectionDegrees),riskLevel:classifyWindRisk(forecast)},analysis:this.analyzer.analyze(route,forecast)};}}

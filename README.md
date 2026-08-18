@@ -165,6 +165,10 @@ El botón **Generar recorrido** llama de forma explícita a `POST /route-plans/:
 
 La consulta explícita `GET /route-plans/:id/weather` usa Open-Meteo Forecast API sin API key para este uso. Muestra velocidad, rachas, dirección meteorológica y nivel de riesgo. Sin una hora en RoutePlan, utiliza las 09:00 locales como referencia provisional. La interfaz atribuye los datos a Open-Meteo; no existe todavía optimización por viento.
 
+## Análisis del viento
+
+`POST /route-plans/:id/wind-analysis` requiere Bearer JWT y analiza el recorrido generado. Tailwind es viento favorable en el avance; headwind es contrario y crosswind lateral. La dirección meteorológica indica de dónde viene el viento. Los porcentajes se calculan por distancia y la vuelta se aproxima como la segunda mitad de la distancia. `favorableWindScore` va de 0 a 100: cuanto mayor, más favorable es el regreso según cola y lateral. CicloViento aún no selecciona automáticamente la mejor ruta ni optimiza alternativas.
+
 ## Arquitectura
 
 El backend separa Presentation, Application, Domain e Infrastructure. El registro de usuario sigue este flujo sin exponer Prisma fuera de Infrastructure: ruta, controller, caso de uso, contrato de repositorio y adaptador Prisma. La arquitectura actual y la arquitectura objetivo están documentadas en `ARCHITECTURE.md`.

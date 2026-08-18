@@ -9,6 +9,7 @@ import type { RegisterUserUseCase } from '../../application/use-cases/RegisterUs
 import type { CreateRoutePlanUseCase } from '../../application/use-cases/CreateRoutePlanUseCase.js';
 import type { GenerateCyclingRouteUseCase } from '../../application/use-cases/GenerateCyclingRouteUseCase.js';
 import type { GetRouteWeatherUseCase } from '../../application/use-cases/GetRouteWeatherUseCase.js';
+import type { AnalyzePlannedRouteWindUseCase } from '../../application/use-cases/AnalyzePlannedRouteWindUseCase.js';
 import type { UserRepository } from '../../domain/repositories/UserRepository.js';
 import { createRoutePlansRouter } from '../routes/route-plans.routes.js';
 import { errorHandler } from '../middlewares/error-handler.js';
@@ -25,6 +26,7 @@ export interface AppDependencies {
   createRoutePlanUseCase: CreateRoutePlanUseCase;
   generateCyclingRouteUseCase: GenerateCyclingRouteUseCase;
   getRouteWeatherUseCase: GetRouteWeatherUseCase;
+  analyzePlannedRouteWindUseCase: AnalyzePlannedRouteWindUseCase;
   userRepository: UserRepository;
 }
 
@@ -41,7 +43,7 @@ export function createApp(dependencies: AppDependencies, corsOrigin: string): Ex
     dependencies.getAuthenticatedUserUseCase,
     dependencies.tokenService,
   ));
-  app.use(createRoutePlansRouter(dependencies.createRoutePlanUseCase, dependencies.generateCyclingRouteUseCase, dependencies.getRouteWeatherUseCase, dependencies.tokenService, dependencies.userRepository));
+  app.use(createRoutePlansRouter(dependencies.createRoutePlanUseCase, dependencies.generateCyclingRouteUseCase, dependencies.getRouteWeatherUseCase, dependencies.analyzePlannedRouteWindUseCase, dependencies.tokenService, dependencies.userRepository));
   app.use(errorHandler);
 
   return app;

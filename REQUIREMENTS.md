@@ -66,7 +66,7 @@ La solicitud de planificación, geocodificación y generación de un único reco
 
 ### Meteorología y viento
 
-La previsión de viento se consulta explícitamente para el punto de salida. No existe todavía análisis por segmentos, optimización de ruta ni recomendación favorable al viento.
+La previsión de viento se consulta explícitamente para el punto de salida. Está implementado el análisis de una ruta real por segmentos: bearing, tailwind/headwind/crosswind, porcentajes ponderados por distancia, análisis del regreso, favorableWindScore y advertencias por riesgo. Siguen pendientes alternativas, selección automática y optimización de ruta.
 
 ### Mapas y GPX
 
