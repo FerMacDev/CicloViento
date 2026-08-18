@@ -16,9 +16,9 @@ backend/src/
 ### Capas actuales
 
 - **Domain:** entidades y reglas que no dependen de tecnologías externas. Incluye User y su contrato UserRepository. `HealthCheck` sigue siendo solo un ejemplo técnico.
-- **Application:** casos de uso y abstracciones de aplicación. Incluye RegisterUserUseCase, PasswordGenerator, PasswordHasher, EmailService e IdGenerator.
-- **Infrastructure:** detalles técnicos de configuración y persistencia. PrismaUserRepository implementa UserRepository; PrismaClient, el adaptador PostgreSQL, el generador criptográfico de contraseñas, el hashing `scrypt` y ResendEmailService permanecen en esta capa.
-- **Presentation:** adaptación HTTP con Express, rutas y controllers. Incluye `POST /users/register` además del health check.
+- **Application:** casos de uso y abstracciones de aplicación. Incluye RegisterUserUseCase, LoginUserUseCase, PasswordGenerator, PasswordHasher, TokenService, EmailService e IdGenerator.
+- **Infrastructure:** detalles técnicos de configuración y persistencia. PrismaUserRepository implementa UserRepository; PrismaClient, el adaptador PostgreSQL, el generador criptográfico de contraseñas, el hashing `scrypt`, ResendEmailService y JwtTokenService permanecen en esta capa.
+- **Presentation:** adaptación HTTP con Express, rutas, controllers y middleware. Incluye `POST /users/register`, `POST /auth/login`, el middleware Bearer, `GET /auth/me` y el health check.
 - **main.ts:** punto de composición y arranque del servidor.
 
 El único flujo HTTP implementado es:
@@ -69,6 +69,22 @@ PrismaClient / PostgreSQL / Supabase
 EmailService → ResendEmailService → Resend API
 ```
 
+El flujo de login implementado es:
+
+```text
+POST /auth/login
+  ↓
+route → controller
+  ↓
+LoginUserUseCase
+  ↓
+UserRepository + PasswordHasher + TokenService
+  ↓
+PrismaUserRepository + ScryptPasswordHasher + JwtTokenService
+```
+
+`TokenService` solo recibe y devuelve el identificador del usuario. JwtTokenService firma un JWT con el claim estándar `sub`; `password`, `passwordHash` y `mustChangePassword` no se incluyen. El middleware de autenticación delega la validación criptográfica en TokenService y deja el `userId` autenticado disponible para el endpoint técnico `GET /auth/me`.
+
 ## Arquitectura objetivo
 
 La arquitectura objetivo se construirá progresivamente. No está implementada todavía.
@@ -115,5 +131,7 @@ Domain no debe depender de Infrastructure. En particular, Domain no puede import
 Infrastructure implementará los contratos definidos por Domain o Application cuando sea necesario. PrismaUserRepository implementa UserRepository, mientras que ScryptPasswordHasher e CryptoIdGenerator implementan contratos de Application. PrismaClient y su adaptador PostgreSQL quedan encapsulados en Infrastructure; Application y Domain no los importan. Este diseño sigue el principio de inversión de dependencias: las capas de alto nivel dependen de abstracciones, y los detalles tecnológicos se conectan desde los bordes de la aplicación.
 
 La contraseña temporal se genera y se entrega a EmailService solo en memoria; User persiste únicamente passwordHash y mustChangePassword. El MVP intenta entregar el email antes de persistir el usuario, por lo que un fallo de Resend devuelve un error controlado y no deja un usuario creado sin credenciales entregadas. Si la persistencia fallase después de una entrega satisfactoria, el destinatario recibiría unas credenciales aún no activas; podrá reintentar el registro. Como evolución, el patrón outbox permitirá coordinar persistencia y reintentos de entrega de forma fiable.
+
+El login permite autenticar una contraseña temporal y devuelve `mustChangePassword` como dato público de contexto. La siguiente fase deberá implementar el cambio de contraseña e impedir el acceso normal a funcionalidades de CicloViento mientras dicho campo sea `true`.
 
 Por tanto, la futura persistencia o los servicios externos podrán sustituirse sin introducir sus dependencias en las reglas de dominio.

@@ -51,6 +51,10 @@ class FakePasswordHasher implements PasswordHasher {
     this.receivedPassword = plainPassword;
     return `hashed:${plainPassword}`;
   }
+
+  async verify(_plainPassword: string, _passwordHash: string): Promise<boolean> {
+    return false;
+  }
 }
 
 class FakeEmailService implements EmailService {

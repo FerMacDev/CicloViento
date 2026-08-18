@@ -18,8 +18,10 @@ El proyecto está en una fase técnica inicial. Actualmente están preparados:
 - Modelo User y migración aplicados.
 - Registro de usuario con contraseña temporal generada por el backend, hash `scrypt`, email único y `mustChangePassword=true`.
 - Resend integrado como proveedor de correo transaccional para las credenciales iniciales.
+- Login mediante `POST /auth/login`, con JWT de acceso y respuesta segura del usuario.
+- Middleware Bearer reutilizable y endpoint técnico protegido `GET /auth/me`.
 
-Todavía están pendientes la validación de entrega real de email, login, autenticación, rutas, meteorología, mapas, GPX, IA y despliegue.
+Todavía están pendientes cambio y recuperación de contraseña, refresh tokens, frontend de login, rutas, meteorología, mapas, GPX, IA y despliegue.
 
 ## Stack tecnológico
 
@@ -96,6 +98,8 @@ Prisma toma `DATABASE_URL` desde `backend/.env`. Copia `backend/.env.example` a 
 
 El envío de credenciales usa el SDK oficial de Resend y requiere también `RESEND_API_KEY` y `EMAIL_FROM` en `backend/.env`. El remitente debe pertenecer a un dominio verificado en Resend. No incluyas estos valores en archivos versionados.
 
+La autenticación requiere `JWT_SECRET` en `backend/.env`; no debe versionarse ni sustituirse por un valor generado automáticamente. `JWT_EXPIRES_IN` es opcional y su valor predeterminado es `15m`.
+
 Una vez configurada la conexión, genera el cliente y aplica la migración pendiente:
 
 ```bash
@@ -119,6 +123,21 @@ Respuesta:
   "status": "ok"
 }
 ```
+
+## Autenticación
+
+```text
+POST /auth/login
+```
+
+Recibe `email` y `password`. Con credenciales correctas devuelve un `accessToken` y los datos públicos del usuario, incluido `mustChangePassword`. No devuelve contraseñas ni hashes. Mientras este indicador sea `true`, una fase posterior deberá restringir el acceso normal hasta completar el cambio de contraseña.
+
+```text
+GET /auth/me
+Authorization: Bearer <accessToken>
+```
+
+Es un endpoint técnico protegido que comprueba el middleware JWT y devuelve únicamente el identificador autenticado. Tokens ausentes, inválidos o expirados devuelven `401`.
 
 ## Arquitectura
 

@@ -9,18 +9,20 @@
     "start": "node dist/main.js",
     "prisma:generate": "prisma generate",
     "prisma:validate": "prisma validate",
-    "test": "tsx --test tests/register-user.use-case.test.ts"
+    "test": "tsx --test tests/register-user.use-case.test.ts tests/login-user.use-case.test.ts tests/jwt-token-service.test.ts tests/presentation-auth.test.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
     "pg": "^8.23.0",
     "resend": "^6.20.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^26.2.0",
     "@types/pg": "^8.23.0",
     "prisma": "^7.9.1",

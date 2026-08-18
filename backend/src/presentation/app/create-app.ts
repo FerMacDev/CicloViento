@@ -1,16 +1,26 @@
 import express, { type Express } from 'express';
 
+import type { TokenService } from '../../application/services/TokenService.js';
+import type { LoginUserUseCase } from '../../application/use-cases/LoginUserUseCase.js';
 import type { RegisterUserUseCase } from '../../application/use-cases/RegisterUserUseCase.js';
 import { errorHandler } from '../middlewares/error-handler.js';
+import { createAuthRouter } from '../routes/auth.routes.js';
 import { createHealthRouter } from '../routes/health.routes.js';
 import { createUsersRouter } from '../routes/users.routes.js';
 
-export function createApp(registerUserUseCase: RegisterUserUseCase): Express {
+export interface AppDependencies {
+  registerUserUseCase: RegisterUserUseCase;
+  loginUserUseCase: LoginUserUseCase;
+  tokenService: TokenService;
+}
+
+export function createApp(dependencies: AppDependencies): Express {
   const app = express();
 
   app.use(express.json());
   app.use(createHealthRouter());
-  app.use(createUsersRouter(registerUserUseCase));
+  app.use(createUsersRouter(dependencies.registerUserUseCase));
+  app.use(createAuthRouter(dependencies.loginUserUseCase, dependencies.tokenService));
   app.use(errorHandler);
 
   return app;
