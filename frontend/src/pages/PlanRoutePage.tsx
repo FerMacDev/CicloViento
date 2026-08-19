@@ -8,6 +8,19 @@ import type {
   WindAnalysisResponse,
 } from "../types/route-plan";
 import { StartLocationMap } from "../components/StartLocationMap";
+
+function weatherCondition(weatherCode: number): { icon: string; label: string } {
+  if (weatherCode === 0) return { icon: "☀️", label: "Despejado" };
+  if ([1, 2].includes(weatherCode)) return { icon: "⛅", label: "Parcialmente nublado" };
+  if (weatherCode === 3) return { icon: "☁️", label: "Nublado" };
+  if ([45, 48].includes(weatherCode)) return { icon: "🌫️", label: "Niebla" };
+  if ([51, 53, 55, 56, 57].includes(weatherCode)) return { icon: "🌦️", label: "Llovizna" };
+  if ([61, 63, 65, 66, 67, 80, 81, 82].includes(weatherCode)) return { icon: "🌧️", label: "Lluvia" };
+  if ([71, 73, 75, 77, 85, 86].includes(weatherCode)) return { icon: "❄️", label: "Nieve" };
+  if ([95, 96, 99].includes(weatherCode)) return { icon: "⛈️", label: "Tormenta" };
+  return { icon: "🌤️", label: "Condiciones variables" };
+}
+
 export function PlanRoutePage() {
   const { createRoutePlan, generateCyclingRoute, getRouteWeather, analyzeRouteWind, downloadRouteGpx } = useAuth();
   const [form, setForm] = useState({
@@ -81,6 +94,7 @@ export function PlanRoutePage() {
     if (!result) return;
     setLoadingWeather(true);
     setError("");
+    setWindAnalysis(null);
     try {
       setWeather(await getRouteWeather(result.id));
     } catch (e) {
@@ -93,8 +107,15 @@ export function PlanRoutePage() {
       setLoadingWeather(false);
     }
   }
-  async function analyzeWind() { if (!result) return; setAnalyzingWind(true); setError(""); try { setWindAnalysis(await analyzeRouteWind(result.id)); } catch (e) { setError(e instanceof ApiError ? e.message : "No se ha podido analizar el viento en la ruta."); } finally { setAnalyzingWind(false); } }
+  async function analyzeWind() { if (!result) return; setAnalyzingWind(true); setError(""); setWeather(null); try { setWindAnalysis(await analyzeRouteWind(result.id)); } catch (e) { setError(e instanceof ApiError ? e.message : "No se ha podido analizar el viento en la ruta."); } finally { setAnalyzingWind(false); } }
   async function downloadGpx() { if (!result || !route) return; setDownloadingGpx(true); setError(""); try { await downloadRouteGpx(result.id); } catch { setError("No se ha podido generar el archivo GPX."); } finally { setDownloadingGpx(false); } }
+  function returnToPlanningForm() {
+    setResult(null);
+    setRoute(null);
+    setWeather(null);
+    setWindAnalysis(null);
+    setError("");
+  }
   if (result)
     return (
       <section className="form-card success-card">
@@ -148,11 +169,18 @@ export function PlanRoutePage() {
             ? "Consultando meteorología..."
             : "Consultar meteorología"}
         </button>
-        <button className="button button-primary" onClick={analyzeWind} disabled={analyzingWind}>{analyzingWind ? "Analizando viento en la ruta..." : "Analizar viento en la ruta"}</button>
+        {result.favorableWind && <button className="button button-primary" onClick={analyzeWind} disabled={analyzingWind}>{analyzingWind ? "Analizando viento en la ruta..." : "Analizar viento en la ruta"}</button>}
         {windAnalysis && <section><h2>Análisis del viento en la ruta</h2><p>Velocidad: {windAnalysis.wind.speedKmh} km/h · Rachas: {windAnalysis.wind.gustKmh} km/h</p><p>Dirección: {windAnalysis.wind.directionDegrees}° — {windAnalysis.wind.directionCardinal} · Nivel: {windAnalysis.wind.riskLevel}</p><p>Ruta completa — Cola: {windAnalysis.analysis.tailwindPercent.toFixed(1)}% · Frontal: {windAnalysis.analysis.headwindPercent.toFixed(1)}% · Lateral: {windAnalysis.analysis.crosswindPercent.toFixed(1)}%</p><p>Regreso — Cola: {windAnalysis.analysis.returnTailwindPercent.toFixed(1)}% · Frontal: {windAnalysis.analysis.returnHeadwindPercent.toFixed(1)}% · Lateral: {windAnalysis.analysis.returnCrosswindPercent.toFixed(1)}%</p><p>Puntuación favorable: {windAnalysis.analysis.favorableWindScore.toFixed(1)} / 100</p>{(windAnalysis.wind.riskLevel === "high" || windAnalysis.wind.riskLevel === "dangerous") && <p className="form-error">Una ruta puede presentar viento favorable y, al mismo tiempo, resultar peligrosa debido a la intensidad o las rachas.</p>}{result.favorableWind && <p>Has solicitado una ruta favorable al viento. Actualmente CicloViento analiza el recorrido generado; la selección automática de la mejor alternativa se incorporará en la siguiente fase.</p>}</section>}
         {weather && (
           <section>
-            <h2>Condiciones de viento</h2>
+            <h2>Pronóstico meteorológico</h2>
+            <p>
+              <span role="img" aria-label={weatherCondition(weather.weatherCode).label}>{weatherCondition(weather.weatherCode).icon}</span>{" "}
+              {weatherCondition(weather.weatherCode).label}
+            </p>
+            <p>
+              Temperatura: {weather.temperatureC.toFixed(1)} °C · Sensación: {weather.apparentTemperatureC.toFixed(1)} °C · Precipitación: {weather.precipitationProbabilityPercent}%
+            </p>
             <p>
               Velocidad: {weather.windSpeedKmh} km/h · Rachas:{" "}
               {weather.windGustKmh} km/h
@@ -172,6 +200,9 @@ export function PlanRoutePage() {
             <p>Weather data by Open-Meteo</p>
           </section>
         )}
+        <button className="button button-secondary" onClick={returnToPlanningForm}>
+          Volver a planificar ruta
+        </button>
       </section>
     );
   return (

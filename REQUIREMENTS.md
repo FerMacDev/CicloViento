@@ -28,7 +28,7 @@ El alcance funcional se desarrollará de forma incremental. Este documento difer
 - Geocodificación del punto de partida, persistencia de latitude/longitude y mapa con marcador del punto de salida.
 - Generación explícita de un recorrido ciclista circular real mediante openrouteservice, perfil `cycling-road` y geometría GeoJSON.
 - Visualización del recorrido generado mediante una polyline de Leaflet/OpenStreetMap.
-- Consulta meteorológica de viento mediante Open-Meteo: velocidad, dirección, rachas y clasificación inicial de riesgo.
+- Consulta meteorológica mediante Open-Meteo: condición general, temperatura, sensación térmica, probabilidad de precipitación, velocidad, dirección, rachas y clasificación de riesgo.
 - Selección básica de ruta favorable al viento: hasta tres candidatas deterministas, comparación de favorabilidad del regreso y ruta seleccionada.
 - Descarga protegida de la ruta generada en formato GPX 1.1, incluida la ruta seleccionada por viento.
 

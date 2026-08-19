@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { GenerateCyclingRouteController } from '../src/presentation/controllers/generate-cycling-route-controller.js';
+import { WeatherForecastUnavailableError } from '../src/application/services/WeatherService.js';
 
 function response() {
   let statusCode: number | undefined;
@@ -28,4 +29,12 @@ test('generate route controller exposes only the optimized route summary', async
   assert.equal((payload.optimization as Record<string, unknown>).candidateCount, 2);
   assert.equal('apiKey' in payload, false);
   assert.equal(JSON.stringify(payload).includes('OpenRouteService'), false);
+});
+
+test('generate route controller returns the weather forecast message for a future date', async () => {
+  const controller = new GenerateCyclingRouteController({ execute: async () => { throw new WeatherForecastUnavailableError(); } } as never);
+  const res = response();
+  await controller.handle({ params: { id: 'plan' }, authenticatedUser: { userId: 'user' } } as never, res.value as never, () => {});
+  assert.equal(res.statusCode, 422);
+  assert.deepEqual(res.body, { message: 'La previsión meteorológica todavía no está disponible para esta fecha.' });
 });

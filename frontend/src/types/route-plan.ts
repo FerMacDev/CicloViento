@@ -14,7 +14,7 @@ export interface GeneratedRouteResponse {
   geometry: RouteCoordinate[];
   optimization?: WindOptimizedRouteResponse;
 }
-export interface RouteWeatherResponse { routePlanId: string; forecastDateTime: string; windSpeedKmh: number; windDirectionDegrees: number; windGustKmh: number; windDirectionCardinal: string; riskLevel: 'normal' | 'caution' | 'high' | 'dangerous'; }
+export interface RouteWeatherResponse { routePlanId: string; forecastDateTime: string; windSpeedKmh: number; windDirectionDegrees: number; windGustKmh: number; weatherCode: number; temperatureC: number; apparentTemperatureC: number; precipitationProbabilityPercent: number; windDirectionCardinal: string; riskLevel: 'normal' | 'caution' | 'high' | 'dangerous'; }
 export interface WindAnalysisResponse { routePlanId:string; wind:{speedKmh:number;gustKmh:number;directionDegrees:number;directionCardinal:string;riskLevel:'normal'|'caution'|'high'|'dangerous'}; analysis:{tailwindPercent:number;headwindPercent:number;crosswindPercent:number;returnTailwindPercent:number;returnHeadwindPercent:number;returnCrosswindPercent:number;averageLongitudinalComponentKmh:number;averageCrosswindComponentKmh:number;maxCrosswindComponentKmh:number;favorableWindScore:number}; }
 
 export interface RouteCandidateSummary {
