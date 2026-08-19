@@ -4,7 +4,7 @@ import test from 'node:test';
 import { GenerateCyclingRouteUseCase } from '../src/application/use-cases/GenerateCyclingRouteUseCase.js';
 import {
   GenerateWindOptimizedRouteUseCase,
-  NoViableWindRouteError,
+  NoGeneratedWindRouteError,
   WindOptimizedRouteNotFoundError,
 } from '../src/application/use-cases/GenerateWindOptimizedRouteUseCase.js';
 import type { GeneratedRoute, RoutingService } from '../src/application/services/RoutingService.js';
@@ -77,6 +77,8 @@ test('selects the candidate with the greatest favorable score and requests weath
   const result = await useCase.execute('plan-1', 'user-1');
   assert.equal(result.selectedCandidate, 2);
   assert.equal(result.candidateCount, 3);
+  assert.equal(result.selectionMode, 'wind-optimized');
+  assert.equal(result.candidates.every((candidate) => candidate.withinDistanceTolerance), true);
   assert.equal(result.candidates.find((candidate) => candidate.selected)?.seed, 2);
   assert.deepEqual(routing.calls, [1, 2, 3]);
   assert.equal(weather.calls, 1);
@@ -89,18 +91,48 @@ test('breaks score ties by distance difference and then seed', async () => {
   assert.equal((await second.useCase.execute('plan-1', 'user-1')).selectedCandidate, 1);
 });
 
-test('continues after partial provider failures and accepts one valid candidate', async () => {
-  const { useCase } = createUseCase({ 1: 50, 2: 50, 3: 50 }, { 1: 20, 2: 90, 3: 60 }, [1, 3]);
+test('continues sequentially after partial provider failures and accepts one valid candidate', async () => {
+  const { useCase, routing } = createUseCase({ 1: 50, 2: 50, 3: 50 }, { 1: 20, 2: 90, 3: 60 }, [1, 3]);
   const result = await useCase.execute('plan-1', 'user-1');
   assert.equal(result.candidateCount, 1);
   assert.equal(result.selectedCandidate, 2);
+  assert.equal(result.selectionMode, 'wind-optimized');
+  assert.deepEqual(routing.calls, [1, 2, 3]);
 });
 
-test('rejects all failed or distance-incoherent candidates without leaking provider details', async () => {
+test('returns the closest real candidate as a distance fallback when all candidates are outside tolerance', async () => {
+  const { useCase, routing } = createUseCase({ 1: 75, 2: 68, 3: 83 }, { 1: 82, 2: 60, 3: 95 });
+  const result = await useCase.execute('plan-1', 'user-1');
+
+  assert.equal(result.selectionMode, 'distance-fallback');
+  assert.equal(result.selectedCandidate, 2);
+  assert.equal(result.candidateCount, 3);
+  assert.equal(result.candidates.find((candidate) => candidate.selected)?.withinDistanceTolerance, false);
+  assert.equal(result.candidates.every((candidate) => !candidate.withinDistanceTolerance), true);
+  assert.deepEqual(routing.calls, [1, 2, 3]);
+});
+
+test('breaks distance fallback ties by score and then seed', async () => {
+  const scoreTieBreak = createUseCase({ 1: 65, 2: 35, 3: 80 }, { 1: 60, 2: 90, 3: 20 });
+  assert.equal((await scoreTieBreak.useCase.execute('plan-1', 'user-1')).selectedCandidate, 2);
+
+  const seedTieBreak = createUseCase({ 1: 65, 2: 35, 3: 80 }, { 1: 90, 2: 90, 3: 20 });
+  assert.equal((await seedTieBreak.useCase.execute('plan-1', 'user-1')).selectedCandidate, 1);
+});
+
+test('uses a distance fallback after partial provider failures without a fourth routing attempt', async () => {
+  const { useCase, routing } = createUseCase({ 1: 50, 2: 72, 3: 80 }, { 1: 20, 2: 90, 3: 60 }, [1]);
+  const result = await useCase.execute('plan-1', 'user-1');
+
+  assert.equal(result.selectionMode, 'distance-fallback');
+  assert.equal(result.selectedCandidate, 2);
+  assert.equal(result.candidateCount, 2);
+  assert.deepEqual(routing.calls, [1, 2, 3]);
+});
+
+test('returns a controlled routing error only when all candidates fail', async () => {
   const failed = createUseCase({ 1: 50, 2: 50, 3: 50 }, { 1: 1, 2: 1, 3: 1 }, [1, 2, 3]);
-  await assert.rejects(() => failed.useCase.execute('plan-1', 'user-1'), NoViableWindRouteError);
-  const outsideTolerance = createUseCase({ 1: 35, 2: 65, 3: 80 }, { 1: 99, 2: 99, 3: 99 });
-  await assert.rejects(() => outsideTolerance.useCase.execute('plan-1', 'user-1'), NoViableWindRouteError);
+  await assert.rejects(() => failed.useCase.execute('plan-1', 'user-1'), NoGeneratedWindRouteError);
 });
 
 test('keeps ownership failures indistinguishable from a missing route plan', async () => {

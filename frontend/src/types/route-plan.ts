@@ -25,12 +25,16 @@ export interface RouteCandidateSummary {
   returnTailwindPercent: number;
   returnHeadwindPercent: number;
   returnCrosswindPercent: number;
+  withinDistanceTolerance: boolean;
   selected: boolean;
 }
+
+export type RouteSelectionMode = 'wind-optimized' | 'distance-fallback';
 
 export interface WindOptimizedRouteResponse {
   candidateCount: number;
   selectedCandidate: number;
+  selectionMode: RouteSelectionMode;
   wind: WindAnalysisResponse['wind'];
   analysis: WindAnalysisResponse['analysis'];
   candidates: RouteCandidateSummary[];

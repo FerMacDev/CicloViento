@@ -29,7 +29,7 @@ El alcance funcional se desarrollará de forma incremental. Este documento difer
 - Generación explícita de un recorrido ciclista circular real mediante openrouteservice, perfil `cycling-road` y geometría GeoJSON.
 - Visualización del recorrido generado mediante una polyline de Leaflet/OpenStreetMap.
 - Consulta meteorológica mediante Open-Meteo: condición general, temperatura, sensación térmica, probabilidad de precipitación, velocidad, dirección, rachas y clasificación de riesgo.
-- Selección básica de ruta favorable al viento: hasta tres candidatas deterministas, comparación de favorabilidad del regreso y ruta seleccionada.
+- Selección de ruta favorable al viento: hasta tres candidatas deterministas, tolerancia preferente de distancia ±20 %, comparación de favorabilidad del regreso y entrega de la ruta real más cercana cuando ninguna candidata cumple el margen.
 - Descarga protegida de la ruta generada en formato GPX 1.1, incluida la ruta seleccionada por viento.
 
 La generación circular pública actual está limitada a 100 km; RoutePlan sigue aceptando preferencias de hasta 300 km para futuras estrategias de routing.
@@ -68,7 +68,7 @@ La solicitud de planificación, geocodificación y generación de un único reco
 
 ### Meteorología y viento
 
-La previsión de viento se consulta explícitamente para el punto de salida. Está implementado el análisis de una ruta real por segmentos: bearing, tailwind/headwind/crosswind, porcentajes ponderados por distancia, análisis del regreso, favorableWindScore y advertencias por riesgo. Si se solicita una ruta favorable al viento, se generan hasta tres alternativas circulares deterministas, se comparan con una única previsión y se selecciona la de mejor favorabilidad para el regreso. Siguen pendientes optimización avanzada, hora de salida configurable y meteorología por múltiples puntos u horas.
+La previsión de viento se consulta explícitamente para el punto de salida. Está implementado el análisis de una ruta real por segmentos: bearing, tailwind/headwind/crosswind, porcentajes ponderados por distancia, análisis del regreso, favorableWindScore y advertencias por riesgo. Si se solicita una ruta favorable al viento, se generan hasta tres alternativas circulares deterministas. Las que quedan dentro de ±20 % de la distancia solicitada se seleccionan por favorabilidad; si ninguna cumple el margen, se entrega la ruta real más cercana como `distance-fallback`. Nunca se inventan rutas y el fallo total de routing se diferencia del fallback por distancia. Siguen pendientes optimización avanzada, hora de salida configurable y meteorología por múltiples puntos u horas.
 
 ### Mapas y GPX
 

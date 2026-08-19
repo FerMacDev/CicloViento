@@ -5,7 +5,7 @@ import {
   RoundTripDistanceLimitError,
   RoutePlanNotFoundError,
 } from '../../application/use-cases/GenerateCyclingRouteUseCase.js';
-import { NoViableWindRouteError } from '../../application/use-cases/GenerateWindOptimizedRouteUseCase.js';
+import { NoGeneratedWindRouteError } from '../../application/use-cases/GenerateWindOptimizedRouteUseCase.js';
 import {
   RouteNotFoundError,
   RoutingProviderInvalidResponseError,
@@ -37,6 +37,7 @@ export class GenerateCyclingRouteController {
           optimization: {
             candidateCount: result.optimization.candidateCount,
             selectedCandidate: result.optimization.selectedCandidate,
+            selectionMode: result.optimization.selectionMode,
             wind: {
               speedKmh: result.optimization.weather.windSpeedKmh,
               gustKmh: result.optimization.weather.windGustKmh,
@@ -52,7 +53,7 @@ export class GenerateCyclingRouteController {
     } catch (error) {
       if (error instanceof RoutePlanNotFoundError) { response.status(404).json({ message: 'Planificación no encontrada.' }); return; }
       if (error instanceof RoundTripDistanceLimitError) { response.status(422).json({ message: 'Actualmente la generación automática de rutas circulares está disponible hasta 100 km. Las rutas de mayor distancia se incorporarán en una fase posterior.' }); return; }
-      if (error instanceof NoViableWindRouteError) { response.status(422).json({ message: 'No se ha encontrado una ruta candidata dentro de la distancia solicitada.' }); return; }
+      if (error instanceof NoGeneratedWindRouteError) { response.status(503).json({ message: 'No se ha podido obtener ningún recorrido circular real en este momento. No se muestra una ruta inventada. Inténtalo de nuevo más tarde.' }); return; }
       if (error instanceof WeatherForecastUnavailableError) { response.status(422).json({ message: 'La previsión meteorológica todavía no está disponible para esta fecha.' }); return; }
       if (error instanceof RouteNotFoundError) { response.status(422).json({ message: 'No se ha encontrado un recorrido ciclista circular para esta planificación.' }); return; }
       if (error instanceof RoutingRateLimitError) { response.status(429).json({ message: 'El servicio de rutas está temporalmente limitado. Inténtalo de nuevo más tarde.' }); return; }

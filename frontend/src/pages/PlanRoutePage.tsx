@@ -148,7 +148,33 @@ export function PlanRoutePage() {
                 ? `Duración estimada: ${Math.round(route.durationSeconds / 60)} min`
                 : "Duración estimada no disponible."}
             </p>
-            {route.optimization && <section><p>Puntuación favorable para el regreso: {route.optimization.analysis.favorableWindScore.toFixed(1)} / 100</p><p>Regreso — Cola: {route.optimization.analysis.returnTailwindPercent.toFixed(1)}% · Lateral: {route.optimization.analysis.returnCrosswindPercent.toFixed(1)}% · Frontal: {route.optimization.analysis.returnHeadwindPercent.toFixed(1)}%</p><p>Se han comparado {route.optimization.candidateCount} rutas candidatas.</p>{route.optimization.candidateCount >= 2 && route.optimization.wind.riskLevel !== "dangerous" && <p>CicloViento ha seleccionado el recorrido con el regreso más favorable según la previsión de viento disponible.</p>}{route.optimization.wind.riskLevel === "high" && <p className="form-error">Las condiciones previstas de viento requieren precaución.</p>}{route.optimization.wind.riskLevel === "dangerous" && <p className="form-error">Las condiciones previstas de viento pueden ser peligrosas. La favorabilidad del recorrido no implica que sea seguro realizarlo.</p>}<h2>Rutas analizadas</h2>{route.optimization.candidates.map((candidate) => <article key={candidate.seed}><h3>Ruta {candidate.seed}{candidate.selected ? " · Seleccionada" : ""}</h3><p>{candidate.actualDistanceKm.toFixed(1)} km{candidate.ascentM === undefined ? "" : ` · ${Math.round(candidate.ascentM)} m de desnivel`}</p><p>Score: {candidate.favorableWindScore.toFixed(1)}</p><p>Regreso: {candidate.returnTailwindPercent.toFixed(1)}% cola / {candidate.returnCrosswindPercent.toFixed(1)}% lateral / {candidate.returnHeadwindPercent.toFixed(1)}% frontal</p></article>)}</section>}
+            {route.optimization && (
+              <section>
+                {route.optimization.selectionMode === "wind-optimized" ? (
+                  <p>
+                    Se han comparado {route.optimization.candidateCount} alternativas y se ha seleccionado la más favorable para el viento durante el regreso. Distancia generada: {route.actualDistanceKm.toFixed(1)} km.
+                  </p>
+                ) : (
+                  <p>
+                    No se encontró una alternativa dentro del margen de ±20 % de la distancia solicitada. Se muestra la ruta disponible más cercana: {route.actualDistanceKm.toFixed(1)} km frente a {route.requestedDistanceKm} km solicitados. El viento se ha analizado, pero esta ruta no se considera optimizada por distancia.
+                  </p>
+                )}
+                <p>Puntuación favorable para el regreso: {route.optimization.analysis.favorableWindScore.toFixed(1)} / 100</p>
+                <p>Regreso — Cola: {route.optimization.analysis.returnTailwindPercent.toFixed(1)}% · Lateral: {route.optimization.analysis.returnCrosswindPercent.toFixed(1)}% · Frontal: {route.optimization.analysis.returnHeadwindPercent.toFixed(1)}%</p>
+                {route.optimization.wind.riskLevel === "high" && <p className="form-error">Las condiciones previstas de viento requieren precaución.</p>}
+                {route.optimization.wind.riskLevel === "dangerous" && <p className="form-error">Las condiciones previstas de viento pueden ser peligrosas. La favorabilidad del recorrido no implica que sea seguro realizarlo.</p>}
+                <h2>Rutas analizadas</h2>
+                {route.optimization.candidates.map((candidate) => (
+                  <article key={candidate.seed}>
+                    <h3>Ruta {candidate.seed}{candidate.selected ? " · Seleccionada" : ""}</h3>
+                    <p>{candidate.actualDistanceKm.toFixed(1)} km{candidate.ascentM === undefined ? "" : ` · ${Math.round(candidate.ascentM)} m de desnivel`}</p>
+                    <p>{candidate.withinDistanceTolerance ? "Dentro del margen de distancia solicitado." : "Fuera del margen de distancia solicitado."}</p>
+                    <p>Score: {candidate.favorableWindScore.toFixed(1)}</p>
+                    <p>Regreso: {candidate.returnTailwindPercent.toFixed(1)}% cola / {candidate.returnCrosswindPercent.toFixed(1)}% lateral / {candidate.returnHeadwindPercent.toFixed(1)}% frontal</p>
+                  </article>
+                ))}
+              </section>
+            )}
           </section>
         ) : (
           <button
@@ -170,7 +196,7 @@ export function PlanRoutePage() {
             : "Consultar meteorología"}
         </button>
         {result.favorableWind && <button className="button button-primary" onClick={analyzeWind} disabled={analyzingWind}>{analyzingWind ? "Analizando viento en la ruta..." : "Analizar viento en la ruta"}</button>}
-        {windAnalysis && <section><h2>Análisis del viento en la ruta</h2><p>Velocidad: {windAnalysis.wind.speedKmh} km/h · Rachas: {windAnalysis.wind.gustKmh} km/h</p><p>Dirección: {windAnalysis.wind.directionDegrees}° — {windAnalysis.wind.directionCardinal} · Nivel: {windAnalysis.wind.riskLevel}</p><p>Ruta completa — Cola: {windAnalysis.analysis.tailwindPercent.toFixed(1)}% · Frontal: {windAnalysis.analysis.headwindPercent.toFixed(1)}% · Lateral: {windAnalysis.analysis.crosswindPercent.toFixed(1)}%</p><p>Regreso — Cola: {windAnalysis.analysis.returnTailwindPercent.toFixed(1)}% · Frontal: {windAnalysis.analysis.returnHeadwindPercent.toFixed(1)}% · Lateral: {windAnalysis.analysis.returnCrosswindPercent.toFixed(1)}%</p><p>Puntuación favorable: {windAnalysis.analysis.favorableWindScore.toFixed(1)} / 100</p>{(windAnalysis.wind.riskLevel === "high" || windAnalysis.wind.riskLevel === "dangerous") && <p className="form-error">Una ruta puede presentar viento favorable y, al mismo tiempo, resultar peligrosa debido a la intensidad o las rachas.</p>}{result.favorableWind && <p>Has solicitado una ruta favorable al viento. Actualmente CicloViento analiza el recorrido generado; la selección automática de la mejor alternativa se incorporará en la siguiente fase.</p>}</section>}
+        {windAnalysis && <section><h2>Análisis del viento en la ruta</h2><p>Velocidad: {windAnalysis.wind.speedKmh} km/h · Rachas: {windAnalysis.wind.gustKmh} km/h</p><p>Dirección: {windAnalysis.wind.directionDegrees}° — {windAnalysis.wind.directionCardinal} · Nivel: {windAnalysis.wind.riskLevel}</p><p>Ruta completa — Cola: {windAnalysis.analysis.tailwindPercent.toFixed(1)}% · Frontal: {windAnalysis.analysis.headwindPercent.toFixed(1)}% · Lateral: {windAnalysis.analysis.crosswindPercent.toFixed(1)}%</p><p>Regreso — Cola: {windAnalysis.analysis.returnTailwindPercent.toFixed(1)}% · Frontal: {windAnalysis.analysis.returnHeadwindPercent.toFixed(1)}% · Lateral: {windAnalysis.analysis.returnCrosswindPercent.toFixed(1)}%</p><p>Puntuación favorable: {windAnalysis.analysis.favorableWindScore.toFixed(1)} / 100</p>{(windAnalysis.wind.riskLevel === "high" || windAnalysis.wind.riskLevel === "dangerous") && <p className="form-error">Una ruta puede presentar viento favorable y, al mismo tiempo, resultar peligrosa debido a la intensidad o las rachas.</p>}</section>}
         {weather && (
           <section>
             <h2>Pronóstico meteorológico</h2>

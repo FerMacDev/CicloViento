@@ -7,6 +7,7 @@ import { classifyWindRisk, windDirectionCardinal, type WindRiskLevel } from '../
 
 export const WIND_ROUTE_SEEDS = [1, 2, 3] as const;
 export const WIND_ROUTE_DISTANCE_TOLERANCE = 0.2;
+export type RouteSelectionMode = 'wind-optimized' | 'distance-fallback';
 
 export interface RouteCandidateSummary {
   seed: number;
@@ -16,6 +17,7 @@ export interface RouteCandidateSummary {
   returnTailwindPercent: number;
   returnHeadwindPercent: number;
   returnCrosswindPercent: number;
+  withinDistanceTolerance: boolean;
   selected: boolean;
 }
 
@@ -28,6 +30,7 @@ export interface WindOptimizedRouteResult {
   analysis: WindRouteAnalysis;
   selectedCandidate: number;
   candidateCount: number;
+  selectionMode: RouteSelectionMode;
   candidates: RouteCandidateSummary[];
 }
 
@@ -38,10 +41,10 @@ export class WindOptimizedRouteNotFoundError extends Error {
   }
 }
 
-export class NoViableWindRouteError extends Error {
+export class NoGeneratedWindRouteError extends Error {
   constructor() {
-    super('No viable wind-optimized route was found.');
-    this.name = 'NoViableWindRouteError';
+    super('No real wind route candidate was generated.');
+    this.name = 'NoGeneratedWindRouteError';
   }
 }
 
@@ -50,6 +53,7 @@ interface AnalyzedCandidate {
   route: GeneratedRoute;
   analysis: WindRouteAnalysis;
   distanceDifferenceKm: number;
+  withinDistanceTolerance: boolean;
 }
 
 export class GenerateWindOptimizedRouteUseCase {
@@ -74,7 +78,9 @@ export class GenerateWindOptimizedRouteUseCase {
       referenceHour: 9,
     });
 
-    const attemptedCandidates: Array<AnalyzedCandidate | null> = await Promise.all(WIND_ROUTE_SEEDS.map(async (seed): Promise<AnalyzedCandidate | null> => {
+    const candidates: AnalyzedCandidate[] = [];
+
+    for (const seed of WIND_ROUTE_SEEDS) {
       try {
         const route = await this.routingService.generateRoundTrip({
           start: { latitude: routePlan.latitude, longitude: routePlan.longitude },
@@ -82,23 +88,26 @@ export class GenerateWindOptimizedRouteUseCase {
           seed,
         });
         const actualDistanceKm = route.distanceM / 1000;
-        if (!isDistanceWithinTolerance(actualDistanceKm, routePlan.distanceKm)) return null;
-
-        return {
+        candidates.push({
           seed,
           route,
           analysis: this.analyzer.analyze(route, forecast),
           distanceDifferenceKm: Math.abs(actualDistanceKm - routePlan.distanceKm),
-        } satisfies AnalyzedCandidate;
+          withinDistanceTolerance: isDistanceWithinTolerance(actualDistanceKm, routePlan.distanceKm),
+        });
       } catch {
-        return null;
+        // A failed provider candidate does not prevent trying the next deterministic seed.
       }
-    }));
+    }
 
-    const candidates = attemptedCandidates.filter((candidate): candidate is AnalyzedCandidate => candidate !== null);
-    if (candidates.length === 0) throw new NoViableWindRouteError();
+    if (candidates.length === 0) throw new NoGeneratedWindRouteError();
 
-    const selected = [...candidates].sort(compareCandidates)[0];
+    const optimizedCandidates = candidates.filter((candidate) => candidate.withinDistanceTolerance);
+    const selectionMode: RouteSelectionMode = optimizedCandidates.length > 0
+      ? 'wind-optimized'
+      : 'distance-fallback';
+    const selected = [...(optimizedCandidates.length > 0 ? optimizedCandidates : candidates)]
+      .sort(selectionMode === 'wind-optimized' ? compareWindOptimizedCandidates : compareDistanceFallbackCandidates)[0];
     const summaries = candidates
       .sort((left, right) => left.seed - right.seed)
       .map((candidate) => toSummary(candidate, candidate.seed === selected.seed));
@@ -112,6 +121,7 @@ export class GenerateWindOptimizedRouteUseCase {
       analysis: selected.analysis,
       selectedCandidate: selected.seed,
       candidateCount: candidates.length,
+      selectionMode,
       candidates: summaries,
     };
   }
@@ -121,9 +131,15 @@ function isDistanceWithinTolerance(actualDistanceKm: number, targetDistanceKm: n
   return Math.abs(actualDistanceKm - targetDistanceKm) <= targetDistanceKm * WIND_ROUTE_DISTANCE_TOLERANCE;
 }
 
-function compareCandidates(left: AnalyzedCandidate, right: AnalyzedCandidate): number {
+function compareWindOptimizedCandidates(left: AnalyzedCandidate, right: AnalyzedCandidate): number {
   return right.analysis.favorableWindScore - left.analysis.favorableWindScore
     || left.distanceDifferenceKm - right.distanceDifferenceKm
+    || left.seed - right.seed;
+}
+
+function compareDistanceFallbackCandidates(left: AnalyzedCandidate, right: AnalyzedCandidate): number {
+  return left.distanceDifferenceKm - right.distanceDifferenceKm
+    || right.analysis.favorableWindScore - left.analysis.favorableWindScore
     || left.seed - right.seed;
 }
 
@@ -136,6 +152,7 @@ function toSummary(candidate: AnalyzedCandidate, selected: boolean): RouteCandid
     returnTailwindPercent: candidate.analysis.returnTailwindPercent,
     returnHeadwindPercent: candidate.analysis.returnHeadwindPercent,
     returnCrosswindPercent: candidate.analysis.returnCrosswindPercent,
+    withinDistanceTolerance: candidate.withinDistanceTolerance,
     selected,
   };
 }
