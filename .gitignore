@@ -27,3 +27,9 @@ pnpm-debug.log*
 Thumbs.db
 .idea/
 .vscode/
+
+# Presentation generation artifacts (the final .pptx remains versioned)
+/work/
+/outputs/CicloViento-presentacion-proyecto/
+/outputs/CicloViento-presentacion-proyecto.pptx.inspect.ndjson
+/outputs/~$*.pptx
