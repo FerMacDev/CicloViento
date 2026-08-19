@@ -25,7 +25,7 @@ El proyecto está en una fase técnica inicial. Actualmente están preparados:
 - Geocodificación del punto de partida y mapa Leaflet/OpenStreetMap.
 - Generación manual de un recorrido ciclista circular de carretera con openrouteservice.
 
-Todavía están pendientes recuperación de contraseña, refresh tokens, optimización avanzada, integración Garmin/Strava, IA y despliegue.
+Todavía están pendientes recuperación de contraseña, refresh tokens, optimización avanzada, integración Garmin/Strava e IA.
 
 ## Stack tecnológico
 
@@ -129,6 +129,16 @@ Respuesta:
   "status": "ok"
 }
 ```
+
+## Despliegue
+
+La aplicación está publicada en Render y disponible para su utilización:
+
+- Frontend: [https://cicloviento.onrender.com](https://cicloviento.onrender.com)
+- API backend: [https://cicloviento-api.onrender.com](https://cicloviento-api.onrender.com)
+- Health check: [https://cicloviento-api.onrender.com/health](https://cicloviento-api.onrender.com/health)
+
+El frontend se publica como Static Site y el backend como Web Service. La API utiliza las variables de entorno configuradas exclusivamente en Render; no se incluyen secretos en el repositorio. El backend se ejecuta en una instancia Starter para permitir el envío SMTP de credenciales iniciales.
 
 ## Autenticación
 

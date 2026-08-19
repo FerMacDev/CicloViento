@@ -80,7 +80,13 @@ No hay capacidades de IA implementadas. Su posible uso futuro se limita al apoyo
 
 ### Despliegue
 
-No hay configuración de despliegue definida ni implementada.
+La aplicación está desplegada en Render para su demostración y utilización:
+
+- Frontend: [https://cicloviento.onrender.com](https://cicloviento.onrender.com)
+- API backend: [https://cicloviento-api.onrender.com](https://cicloviento-api.onrender.com)
+- Health check: [https://cicloviento-api.onrender.com/health](https://cicloviento-api.onrender.com/health)
+
+El frontend se publica como Static Site y el backend como Web Service con instancia Starter. La configuración sensible se mantiene exclusivamente en las variables de entorno de Render. La regla de rewrite del frontend dirige las rutas de la SPA a `index.html`.
 
 ## Criterios de aceptación del MVP
 
