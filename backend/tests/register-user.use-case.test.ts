@@ -19,6 +19,10 @@ import {
   ResendEmailService,
   type ResendEmailClient,
 } from '../src/infrastructure/email/resend-email-service.js';
+import {
+  SmtpEmailService,
+  type SmtpTransporter,
+} from '../src/infrastructure/email/smtp-email-service.js';
 
 class InMemoryUserRepository implements UserRepository {
   readonly users = new Map<string, User>();
@@ -233,6 +237,45 @@ test('ResendEmailService reports provider failures through the port', async () =
     },
   };
   const service = new ResendEmailService(resendClient, 'CicloViento <no-reply@example.com>');
+
+  await assert.rejects(() => service.sendInitialCredentials({
+    recipientEmail: 'usuario@example.com',
+    recipientFirstName: 'Usuario',
+    temporaryPassword: `generated-${Date.now()}`,
+  }));
+});
+
+test('SmtpEmailService adapts the EmailService port without an SMTP request', async () => {
+  let sentEmail: Parameters<SmtpTransporter['sendMail']>[0] | undefined;
+  const transporter: SmtpTransporter = {
+    sendMail: async (email) => {
+      sentEmail = email;
+    },
+  };
+  const password = `generated-${Date.now()}`;
+  const service = new SmtpEmailService(transporter, 'CicloViento <project@example.com>');
+
+  await service.sendInitialCredentials({
+    recipientEmail: 'usuario@example.com',
+    recipientFirstName: 'Usuario',
+    temporaryPassword: password,
+  });
+
+  assert.equal(sentEmail?.from, 'CicloViento <project@example.com>');
+  assert.equal(sentEmail?.to, 'usuario@example.com');
+  assert.match(sentEmail?.subject ?? '', /Bienvenido a CicloViento/i);
+  assert.match(sentEmail?.text ?? '', new RegExp(password));
+  assert.match(sentEmail?.text ?? '', /email de acceso/i);
+  assert.match(sentEmail?.text ?? '', /cambiar esta contraseña/i);
+});
+
+test('SmtpEmailService propagates SMTP delivery failures through the port', async () => {
+  const transporter: SmtpTransporter = {
+    sendMail: async () => {
+      throw new Error('SMTP unavailable');
+    },
+  };
+  const service = new SmtpEmailService(transporter, 'CicloViento <project@example.com>');
 
   await assert.rejects(() => service.sendInitialCredentials({
     recipientEmail: 'usuario@example.com',

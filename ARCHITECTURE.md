@@ -17,7 +17,7 @@ backend/src/
 
 - **Domain:** entidades y reglas que no dependen de tecnologías externas. Incluye User y su contrato UserRepository. `HealthCheck` sigue siendo solo un ejemplo técnico.
 - **Application:** casos de uso y abstracciones de aplicación. Incluye RegisterUserUseCase, LoginUserUseCase, ChangePasswordUseCase, PasswordPolicy, PasswordGenerator, PasswordHasher, TokenService, EmailService e IdGenerator.
-- **Infrastructure:** detalles técnicos de configuración y persistencia. PrismaUserRepository implementa UserRepository; PrismaClient, el adaptador PostgreSQL, el generador criptográfico de contraseñas, el hashing `scrypt`, ResendEmailService y JwtTokenService permanecen en esta capa.
+- **Infrastructure:** detalles técnicos de configuración y persistencia. PrismaUserRepository implementa UserRepository; PrismaClient, el adaptador PostgreSQL, el generador criptográfico de contraseñas, el hashing `scrypt`, SmtpEmailService, ResendEmailService y JwtTokenService permanecen en esta capa. SMTP de Gmail es el proveedor activo para la demostración; Resend se conserva como alternativa futura.
 - **Presentation:** adaptación HTTP con Express, rutas, controllers y middleware. Incluye `POST /users/register`, `POST /auth/login`, `POST /auth/change-password`, el middleware Bearer, el guard de cambio obligatorio, `GET /auth/me` y el health check.
 - **main.ts:** punto de composición y arranque del servidor.
 
@@ -66,7 +66,7 @@ PrismaUserRepository
   ↓
 PrismaClient / PostgreSQL / Supabase
   ↓
-EmailService → ResendEmailService → Resend API
+EmailService → SmtpEmailService → Gmail SMTP
 ```
 
 El flujo de login implementado es:
@@ -152,7 +152,7 @@ Domain no debe depender de Infrastructure. En particular, Domain no puede import
 
 Infrastructure implementará los contratos definidos por Domain o Application cuando sea necesario. PrismaUserRepository implementa UserRepository, mientras que ScryptPasswordHasher e CryptoIdGenerator implementan contratos de Application. PrismaClient y su adaptador PostgreSQL quedan encapsulados en Infrastructure; Application y Domain no los importan. Este diseño sigue el principio de inversión de dependencias: las capas de alto nivel dependen de abstracciones, y los detalles tecnológicos se conectan desde los bordes de la aplicación.
 
-La contraseña temporal se genera y se entrega a EmailService solo en memoria; User persiste únicamente passwordHash y mustChangePassword. El MVP intenta entregar el email antes de persistir el usuario, por lo que un fallo de Resend devuelve un error controlado y no deja un usuario creado sin credenciales entregadas. Si la persistencia fallase después de una entrega satisfactoria, el destinatario recibiría unas credenciales aún no activas; podrá reintentar el registro. Como evolución, el patrón outbox permitirá coordinar persistencia y reintentos de entrega de forma fiable.
+La contraseña temporal se genera y se entrega a EmailService solo en memoria; User persiste únicamente passwordHash y mustChangePassword. El MVP intenta entregar el email antes de persistir el usuario, por lo que un fallo de SMTP devuelve un error controlado y no deja un usuario creado sin credenciales entregadas. SmtpEmailService recibe su configuración exclusivamente del entorno local y usa una contraseña de aplicación de Gmail, nunca la contraseña normal de la cuenta. ResendEmailService permanece desacoplado y disponible como alternativa futura con dominio propio. Si la persistencia fallase después de una entrega satisfactoria, el destinatario recibiría unas credenciales aún no activas; podrá reintentar el registro. Como evolución, el patrón outbox permitirá coordinar persistencia y reintentos de entrega de forma fiable.
 
 El login permite autenticar una contraseña temporal y devuelve `mustChangePassword` como dato público de contexto. El cambio de contraseña puede hacerse tanto de forma obligatoria como voluntaria y exige siempre la contraseña actual. El guard `createMustChangePasswordGuard` es reutilizable para futuras rutas normales: consulta el usuario mediante UserRepository y devuelve `403` mientras `mustChangePassword` sea `true`; login, contexto mínimo y cambio de contraseña no se bloquean.
 

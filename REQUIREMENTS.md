@@ -20,7 +20,7 @@ El alcance funcional se desarrollará de forma incremental. Este documento difer
 - Modelo User, entidad de dominio User, contrato UserRepository, adaptador PrismaUserRepository y caso de uso RegisterUser implementados.
 - Endpoint de registro `POST /users/register` con email único, contraseña temporal generada por el backend y hash de contraseña.
 - Campo `mustChangePassword` inicializado en `true` para el futuro cambio obligatorio de contraseña.
-- Puerto EmailService y adaptador ResendEmailService integrados; el envío real de credenciales iniciales ya fue validado de forma controlada.
+- Puerto EmailService y adaptador SmtpEmailService integrados; SMTP de Gmail es el proveedor activo para la demostración y ResendEmailService se conserva como alternativa futura. Las credenciales iniciales se entregan antes de persistir el usuario.
 - Login backend mediante email y contraseña, con JWT de acceso, middleware Bearer reutilizable y endpoint técnico `GET /auth/me`.
 - Cambio de contraseña autenticado, con verificación de la contraseña actual, nuevo hash y transición de `mustChangePassword` a `false`.
 - Frontend de registro, login, cambio obligatorio de contraseña, dashboard mínimo y cierre de sesión local.
@@ -56,7 +56,7 @@ La generación circular pública actual está limitada a 100 km; RoutePlan sigue
 
 ### Seguridad
 
-La contraseña temporal se genera de forma segura en Infrastructure, se procesa mediante hashing y no se almacena en texto plano ni se devuelve por HTTP. La autenticación utiliza JWT firmado con `JWT_SECRET`, configurado exclusivamente en el entorno local. El cambio de contraseña exige la actual y almacena solamente el nuevo hash. El frontend encapsula el token en localStorage como decisión de MVP y no almacena contraseñas. No existen todavía recuperación de contraseña, refresh tokens ni autorización por roles.
+La contraseña temporal se genera de forma segura en Infrastructure, se procesa mediante hashing y no se almacena en texto plano ni se devuelve por HTTP. Se envía exclusivamente en el correo transaccional SMTP y no aparece en logs, documentación ni archivos versionables. Gmail se configura con una contraseña de aplicación local; ni esta ni otras credenciales se versionan. Resend queda como alternativa futura vinculada a un dominio propio verificado. La autenticación utiliza JWT firmado con `JWT_SECRET`, configurado exclusivamente en el entorno local. El cambio de contraseña exige la actual y almacena solamente el nuevo hash. El frontend encapsula el token en localStorage como decisión de MVP y no almacena contraseñas. No existen todavía recuperación de contraseña, refresh tokens ni autorización por roles.
 
 ### Gestión de usuarios
 

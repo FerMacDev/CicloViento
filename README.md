@@ -17,7 +17,7 @@ El proyecto está en una fase técnica inicial. Actualmente están preparados:
 - Conexión local validada con Supabase PostgreSQL mediante Prisma.
 - Modelo User y migración aplicados.
 - Registro de usuario con contraseña temporal generada por el backend, hash `scrypt`, email único y `mustChangePassword=true`.
-- Resend integrado como proveedor de correo transaccional para las credenciales iniciales.
+- SMTP de Gmail integrado como proveedor de correo transaccional para las credenciales iniciales; Resend se conserva como alternativa futura.
 - Login mediante `POST /auth/login`, con JWT de acceso y respuesta segura del usuario.
 - Middleware Bearer reutilizable y endpoint técnico protegido `GET /auth/me`.
 - Cambio de contraseña mediante `POST /auth/change-password`, que actualiza el hash y desactiva `mustChangePassword`.
@@ -38,7 +38,7 @@ Todavía están pendientes recuperación de contraseña, refresh tokens, optimiz
 
 La conexión local con Supabase PostgreSQL está validada. El único modelo definido es User, exclusivamente para el registro inicial.
 
-El endpoint `POST /users/register` recibe `firstName`, `lastName` y `email`. La contraseña temporal se genera en el backend, no se devuelve por HTTP y se entrega mediante Resend cuando la configuración local sea válida.
+El endpoint `POST /users/register` recibe `firstName`, `lastName` y `email`. La contraseña temporal se genera en el backend, no se devuelve por HTTP y se entrega mediante SMTP cuando la configuración local sea válida. El usuario se persiste solo después de que el proveedor acepte el envío.
 
 ## Estructura del proyecto
 
@@ -100,7 +100,7 @@ npm run build
 
 Prisma toma `DATABASE_URL` desde `backend/.env`. Copia `backend/.env.example` a `backend/.env` y completa la URL de conexión real de PostgreSQL/Supabase solo en tu entorno local. El archivo `.env` está ignorado por Git.
 
-El envío de credenciales usa el SDK oficial de Resend y requiere también `RESEND_API_KEY` y `EMAIL_FROM` en `backend/.env`. El remitente debe pertenecer a un dominio verificado en Resend. No incluyas estos valores en archivos versionados.
+El envío de credenciales iniciales usa SMTP de Gmail para la demostración del TFM. Configura `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_APP_PASSWORD` y `EMAIL_FROM` únicamente en `backend/.env`. `SMTP_APP_PASSWORD` debe ser una contraseña de aplicación de Google, nunca la contraseña normal de Gmail. No incluyas estos valores en archivos versionados. `ResendEmailService` y `RESEND_API_KEY` se conservan como alternativa futura para un dominio propio verificado.
 
 La autenticación requiere `JWT_SECRET` en `backend/.env`; no debe versionarse ni sustituirse por un valor generado automáticamente. `JWT_EXPIRES_IN` es opcional y su valor predeterminado es `15m`.
 
