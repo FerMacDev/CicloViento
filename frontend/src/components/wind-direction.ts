@@ -1,5 +1,30 @@
 import type { RouteCoordinate } from '../types/route-plan';
 
+export type WindRiskLevel = 'normal' | 'caution' | 'high' | 'dangerous';
+
+export interface WindRiskPresentation {
+  color: string;
+  label: string;
+}
+
+const WIND_RISK_PRESENTATIONS: Record<WindRiskLevel, WindRiskPresentation> = {
+  normal: { color: '#2f855a', label: 'Normal' },
+  caution: { color: '#b7791f', label: 'Precaución' },
+  high: { color: '#c05621', label: 'Alto' },
+  dangerous: { color: '#c53030', label: 'Peligroso' },
+};
+
+const UNKNOWN_WIND_RISK: WindRiskPresentation = {
+  color: '#64748b',
+  label: 'Sin clasificación',
+};
+
+export function getWindRiskPresentation(riskLevel: string | undefined): WindRiskPresentation {
+  return riskLevel && riskLevel in WIND_RISK_PRESENTATIONS
+    ? WIND_RISK_PRESENTATIONS[riskLevel as WindRiskLevel]
+    : UNKNOWN_WIND_RISK;
+}
+
 export function getWindTravelDirection(meteorologicalDirection: number): number {
   return ((meteorologicalDirection % 360) + 540) % 360;
 }

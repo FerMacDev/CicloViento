@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { getWindTravelDirection, selectWindArrowPoints } from '../src/components/wind-direction';
+import { getWindRiskPresentation, getWindTravelDirection, selectWindArrowPoints } from '../src/components/wind-direction';
 
 test('converts meteorological direction into wind travel direction', () => {
   assert.equal(getWindTravelDirection(0), 180);
@@ -11,6 +11,15 @@ test('converts meteorological direction into wind travel direction', () => {
   assert.equal(getWindTravelDirection(350), 170);
   assert.equal(getWindTravelDirection(360), 180);
   assert.equal(getWindTravelDirection(-90), 90);
+});
+
+test('maps existing wind risk levels to accessible arrow presentations', () => {
+  assert.deepEqual(getWindRiskPresentation('normal'), { color: '#2f855a', label: 'Normal' });
+  assert.deepEqual(getWindRiskPresentation('caution'), { color: '#b7791f', label: 'Precaución' });
+  assert.deepEqual(getWindRiskPresentation('high'), { color: '#c05621', label: 'Alto' });
+  assert.deepEqual(getWindRiskPresentation('dangerous'), { color: '#c53030', label: 'Peligroso' });
+  assert.deepEqual(getWindRiskPresentation(undefined), { color: '#64748b', label: 'Sin clasificación' });
+  assert.deepEqual(getWindRiskPresentation('unexpected'), { color: '#64748b', label: 'Sin clasificación' });
 });
 
 test('selects a bounded set of real interior route points without mutating geometry', () => {

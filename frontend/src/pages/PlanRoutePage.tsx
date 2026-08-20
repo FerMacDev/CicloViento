@@ -8,7 +8,7 @@ import type {
   WindAnalysisResponse,
 } from "../types/route-plan";
 import { StartLocationMap } from "../components/StartLocationMap";
-import { getWindTravelDirection } from "../components/wind-direction";
+import { getWindRiskPresentation, getWindTravelDirection } from "../components/wind-direction";
 
 function weatherCondition(weatherCode: number): { icon: string; label: string } {
   if (weatherCode === 0) return { icon: "☀️", label: "Despejado" };
@@ -128,12 +128,13 @@ export function PlanRoutePage() {
   }
   const weatherUnavailable = route?.optimization?.selectionMode === "weather-unavailable";
   const mapWind = weatherUnavailable ? null : weather
-    ? { directionDegrees: weather.windDirectionDegrees, speedKmh: weather.windSpeedKmh, gustKmh: weather.windGustKmh, forecastLabel: weather.forecastDateTime }
+    ? { directionDegrees: weather.windDirectionDegrees, speedKmh: weather.windSpeedKmh, gustKmh: weather.windGustKmh, riskLevel: weather.riskLevel, forecastLabel: weather.forecastDateTime }
     : windAnalysis
-      ? { directionDegrees: windAnalysis.wind.directionDegrees, speedKmh: windAnalysis.wind.speedKmh, gustKmh: windAnalysis.wind.gustKmh, forecastLabel: `${result?.date ?? ""} · ${result?.startTime ?? ""}` }
+      ? { directionDegrees: windAnalysis.wind.directionDegrees, speedKmh: windAnalysis.wind.speedKmh, gustKmh: windAnalysis.wind.gustKmh, riskLevel: windAnalysis.wind.riskLevel, forecastLabel: `${result?.date ?? ""} · ${result?.startTime ?? ""}` }
       : route?.optimization?.wind
-        ? { directionDegrees: route.optimization.wind.directionDegrees, speedKmh: route.optimization.wind.speedKmh, gustKmh: route.optimization.wind.gustKmh, forecastLabel: `${result?.date ?? ""} · ${result?.startTime ?? ""}` }
+        ? { directionDegrees: route.optimization.wind.directionDegrees, speedKmh: route.optimization.wind.speedKmh, gustKmh: route.optimization.wind.gustKmh, riskLevel: route.optimization.wind.riskLevel, forecastLabel: `${result?.date ?? ""} · ${result?.startTime ?? ""}` }
         : null;
+  const windRiskPresentation = mapWind ? getWindRiskPresentation(mapWind.riskLevel) : null;
   if (result)
     return (
       <section className="form-card success-card">
@@ -148,6 +149,7 @@ export function PlanRoutePage() {
           startLocation={result.startLocation}
           geometry={route?.geometry}
           windDirectionDegrees={mapWind?.directionDegrees}
+          windRiskLevel={mapWind?.riskLevel}
           showWind={Boolean(mapWind && showWindOnMap)}
         />
         {route && weatherUnavailable && (
@@ -166,7 +168,8 @@ export function PlanRoutePage() {
               <strong>Viento meteorológico:</strong> {windCardinal(mapWind.directionDegrees)} · {mapWind.directionDegrees}°<br />
               <strong>Sopla hacia:</strong> {windCardinal(getWindTravelDirection(mapWind.directionDegrees))}<br />
               <strong>Velocidad:</strong> {mapWind.speedKmh} km/h · <strong>Rachas:</strong> {mapWind.gustKmh} km/h<br />
-              <strong>Previsión:</strong> {mapWind.forecastLabel}
+              <strong>Previsión:</strong> {mapWind.forecastLabel}<br />
+              <strong>Nivel:</strong> <span className="wind-risk-indicator" style={{ color: windRiskPresentation?.color }}><span aria-hidden="true">●</span> {windRiskPresentation?.label}</span>
             </div>
           </section>
         )}

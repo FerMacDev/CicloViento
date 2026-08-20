@@ -280,7 +280,7 @@ p {
   width: 28px;
 }
 .wind-arrow-icon {
-  fill: #153c34;
+  fill: currentColor;
   filter: drop-shadow(0 1px 1px rgba(255, 255, 255, 0.8));
   height: 21px;
   transform-origin: center;
@@ -307,6 +307,9 @@ p {
   color: #48615a;
   font-size: 0.92rem;
   margin-top: 0.65rem;
+}
+.wind-risk-indicator {
+  font-weight: 700;
 }
 .wind-map-unavailable {
   background: #fff8e8;
