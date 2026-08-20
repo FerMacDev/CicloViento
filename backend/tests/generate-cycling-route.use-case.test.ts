@@ -17,6 +17,8 @@ test('GenerateCyclingRouteUseCase returns a provider-independent route for its o
 test('GenerateCyclingRouteUseCase hides missing and foreign plans and rejects distances above provider capability', async () => {
   await assert.rejects(() => new GenerateCyclingRouteUseCase(new Repo(null), new Router()).execute('missing', 'user-1'), RoutePlanNotFoundError);
   await assert.rejects(() => new GenerateCyclingRouteUseCase(new Repo(plan), new Router()).execute('plan-1', 'other-user'), RoutePlanNotFoundError);
+  const limitPlan = RoutePlan.create({ ...plan, distanceKm: 100 });
+  await new GenerateCyclingRouteUseCase(new Repo(limitPlan), new Router()).execute('plan-1', 'user-1');
   const longPlan = RoutePlan.create({ ...plan, distanceKm: 101 });
   await assert.rejects(() => new GenerateCyclingRouteUseCase(new Repo(longPlan), new Router()).execute('plan-1', 'user-1'), RoundTripDistanceLimitError);
 });

@@ -232,6 +232,11 @@ p {
   margin: 0.5rem 0 0;
   padding: 0.7rem 0.8rem;
 }
+.form-help {
+  color: #587067;
+  font-size: 0.85rem;
+  margin: 0.1rem 0 0.3rem;
+}
 .success-card {
   text-align: center;
 }

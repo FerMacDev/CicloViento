@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import { GenerateCyclingRouteController } from '../src/presentation/controllers/generate-cycling-route-controller.js';
 import { WeatherForecastUnavailableError } from '../src/application/services/WeatherService.js';
+import { RoundTripDistanceLimitError } from '../src/application/use-cases/GenerateCyclingRouteUseCase.js';
 
 function response() {
   let statusCode: number | undefined;
@@ -50,6 +51,20 @@ test('generate route controller returns the weather forecast message for a futur
   await controller.handle({ params: { id: 'plan' }, authenticatedUser: { userId: 'user' } } as never, res.value as never, () => {});
   assert.equal(res.statusCode, 422);
   assert.deepEqual(res.body, { message: 'La previsión meteorológica todavía no está disponible para esta fecha.' });
+});
+
+test('generate route controller explains the circular route provider limit', async () => {
+  const controller = new GenerateCyclingRouteController({
+    execute: async () => { throw new RoundTripDistanceLimitError(100); },
+  } as never);
+  const res = response();
+
+  await controller.handle({ params: { id: 'plan' }, authenticatedUser: { userId: 'user' } } as never, res.value as never, () => {});
+
+  assert.equal(res.statusCode, 422);
+  assert.deepEqual(res.body, {
+    message: 'El proveedor de rutas permite generar recorridos circulares de hasta 100 km. La planificación se ha guardado, pero no se puede generar un recorrido circular para la distancia solicitada.',
+  });
 });
 
 test('generate route controller exposes a safe weather-unavailable fallback without wind scores', async () => {

@@ -27,14 +27,32 @@ function windCardinal(degrees: number): string {
   return directions[Math.round((((degrees % 360) + 360) % 360) / 45) % 8];
 }
 
+function isValidDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+
+  const [year, month, day] = value.split("-").map(Number);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  return (
+    parsed.getUTCFullYear() === year &&
+    parsed.getUTCMonth() === month - 1 &&
+    parsed.getUTCDate() === day
+  );
+}
+
+function isDateInThePast(value: string): boolean {
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+  return new Date(`${value}T00:00:00.000Z`) < today;
+}
+
 export function PlanRoutePage() {
   const { createRoutePlan, generateCyclingRoute, getRouteWeather, analyzeRouteWind, downloadRouteGpx } = useAuth();
   const [form, setForm] = useState({
     startLocation: "",
     date: "",
     startTime: "09:00",
-    distanceKm: 80,
-    elevationGainM: 700,
+    distanceKm: "80",
+    elevationGainM: "700",
     favorableWind: false,
   });
   const [result, setResult] = useState<RoutePlanResponse | null>(null);
@@ -48,21 +66,33 @@ export function PlanRoutePage() {
   const [analyzingWind, setAnalyzingWind] = useState(false);
   const [downloadingGpx, setDownloadingGpx] = useState(false);
   const [showWindOnMap, setShowWindOnMap] = useState(true);
+
   async function submit(e: FormEvent) {
     e.preventDefault();
-    if (
-      !form.startLocation.trim() ||
-      !form.date ||
-      form.distanceKm < 10 ||
-      form.distanceKm > 300 ||
-      form.elevationGainM < 0 ||
-      form.elevationGainM > 5000
-    ) {
-      setError(
-        "Revisa los datos: distancia entre 10 y 300 km y desnivel entre 0 y 5.000 m.",
-      );
-      return;
+    const distanceKm = Number(form.distanceKm);
+    const elevationGainM = Number(form.elevationGainM);
+
+    if (!form.startLocation.trim()) return setError("Indica un punto de partida.");
+    if (!form.date) return setError("Indica la fecha de la salida.");
+    if (!isValidDate(form.date) || isDateInThePast(form.date)) {
+      return setError("La fecha de la ruta no puede estar en el pasado.");
     }
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(form.startTime)) {
+      return setError("Indica una hora de salida válida.");
+    }
+    if (!form.distanceKm.trim() || !Number.isFinite(distanceKm)) {
+      return setError("Indica una distancia válida.");
+    }
+    if (distanceKm < 10 || distanceKm > 300) {
+      return setError("La distancia debe estar entre 10 y 300 km.");
+    }
+    if (!form.elevationGainM.trim() || !Number.isFinite(elevationGainM)) {
+      return setError("Indica un desnivel acumulado válido.");
+    }
+    if (elevationGainM < 0 || elevationGainM > 5000) {
+      return setError("El desnivel acumulado debe estar entre 0 y 5.000 m.");
+    }
+
     setLoading(true);
     setError("");
     try {
@@ -70,6 +100,8 @@ export function PlanRoutePage() {
         await createRoutePlan({
           ...form,
           startLocation: form.startLocation.trim(),
+          distanceKm,
+          elevationGainM,
         }),
       );
     } catch (e) {
@@ -293,10 +325,11 @@ export function PlanRoutePage() {
     <section className="form-card">
       <p className="eyebrow">PLANIFICA TU RUTA</p>
       <h1>Tu próxima salida</h1>
-      <form onSubmit={submit}>
+      <form noValidate onSubmit={submit}>
         <label>
           Punto de partida
           <input
+            required
             value={form.startLocation}
             onChange={(e) =>
               setForm({ ...form, startLocation: e.target.value })
@@ -307,6 +340,7 @@ export function PlanRoutePage() {
           Fecha
           <input
             type="date"
+            required
             value={form.date}
             onChange={(e) => setForm({ ...form, date: e.target.value })}
           />
@@ -315,6 +349,7 @@ export function PlanRoutePage() {
           Hora de salida
           <input
             type="time"
+            required
             value={form.startTime}
             onChange={(e) => setForm({ ...form, startTime: e.target.value })}
           />
@@ -323,24 +358,27 @@ export function PlanRoutePage() {
           Distancia (km)
           <input
             type="number"
+            required
             min="10"
             max="300"
+            step="1"
             value={form.distanceKm}
-            onChange={(e) =>
-              setForm({ ...form, distanceKm: Number(e.target.value) })
-            }
+            onChange={(e) => setForm({ ...form, distanceKm: e.target.value })}
           />
         </label>
+        <p className="form-help">
+          Los recorridos circulares se pueden generar actualmente hasta 100 km por limitación del proveedor de rutas.
+        </p>
         <label>
           Desnivel acumulado (m)
           <input
             type="number"
+            required
             min="0"
             max="5000"
+            step="1"
             value={form.elevationGainM}
-            onChange={(e) =>
-              setForm({ ...form, elevationGainM: Number(e.target.value) })
-            }
+            onChange={(e) => setForm({ ...form, elevationGainM: e.target.value })}
           />
         </label>
         <label>

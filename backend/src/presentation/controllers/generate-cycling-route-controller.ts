@@ -56,7 +56,7 @@ export class GenerateCyclingRouteController {
       });
     } catch (error) {
       if (error instanceof RoutePlanNotFoundError) { response.status(404).json({ message: 'Planificación no encontrada.' }); return; }
-      if (error instanceof RoundTripDistanceLimitError) { response.status(422).json({ message: 'Actualmente la generación automática de rutas circulares está disponible hasta 100 km. Las rutas de mayor distancia se incorporarán en una fase posterior.' }); return; }
+      if (error instanceof RoundTripDistanceLimitError) { response.status(422).json({ message: 'El proveedor de rutas permite generar recorridos circulares de hasta 100 km. La planificación se ha guardado, pero no se puede generar un recorrido circular para la distancia solicitada.' }); return; }
       if (error instanceof NoGeneratedWindRouteError) { response.status(503).json({ message: 'No se ha podido obtener ningún recorrido circular real en este momento. No se muestra una ruta inventada. Inténtalo de nuevo más tarde.' }); return; }
       if (error instanceof WeatherForecastUnavailableError) { response.status(422).json({ message: 'La previsión meteorológica todavía no está disponible para esta fecha.' }); return; }
       if (error instanceof RouteNotFoundError) { response.status(422).json({ message: 'No se ha encontrado un recorrido ciclista circular para esta planificación.' }); return; }
