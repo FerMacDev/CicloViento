@@ -24,11 +24,11 @@ El alcance funcional se desarrollará de forma incremental. Este documento difer
 - Login backend mediante email y contraseña, con JWT de acceso, middleware Bearer reutilizable y endpoint técnico `GET /auth/me`.
 - Cambio de contraseña autenticado, con verificación de la contraseña actual, nuevo hash y transición de `mustChangePassword` a `false`.
 - Frontend de registro, login, cambio obligatorio de contraseña, dashboard mínimo y cierre de sesión local.
-- Solicitud RoutePlan persistida con preferencias de ruta y formulario protegido `/plan-route`; no incluye generación real de recorridos.
+- Solicitud RoutePlan persistida con preferencias de ruta, incluida hora de salida obligatoria `HH:mm`, y formulario protegido `/plan-route`.
 - Geocodificación del punto de partida, persistencia de latitude/longitude y mapa con marcador del punto de salida.
 - Generación explícita de un recorrido ciclista circular real mediante openrouteservice, perfil `cycling-road` y geometría GeoJSON.
 - Visualización del recorrido generado mediante una polyline de Leaflet/OpenStreetMap.
-- Consulta meteorológica mediante Open-Meteo: condición general, temperatura, sensación térmica, probabilidad de precipitación, velocidad, dirección, rachas y clasificación de riesgo.
+- Consulta meteorológica mediante Open-Meteo para la fecha y hora de salida: condición general, temperatura, sensación térmica, probabilidad de precipitación, velocidad, dirección, rachas y clasificación de riesgo.
 - Selección de ruta favorable al viento: hasta tres candidatas deterministas, tolerancia preferente de distancia ±20 %, comparación de favorabilidad del regreso y entrega de la ruta real más cercana cuando ninguna candidata cumple el margen.
 - Descarga protegida de la ruta generada en formato GPX 1.1, incluida la ruta seleccionada por viento.
 
@@ -68,7 +68,7 @@ La solicitud de planificación, geocodificación y generación de un único reco
 
 ### Meteorología y viento
 
-La previsión de viento se consulta explícitamente para el punto de salida. Está implementado el análisis de una ruta real por segmentos: bearing, tailwind/headwind/crosswind, porcentajes ponderados por distancia, análisis del regreso, favorableWindScore y advertencias por riesgo. Si se solicita una ruta favorable al viento, se generan hasta tres alternativas circulares deterministas. Las que quedan dentro de ±20 % de la distancia solicitada se seleccionan por favorabilidad; si ninguna cumple el margen, se entrega la ruta real más cercana como `distance-fallback`. Nunca se inventan rutas y el fallo total de routing se diferencia del fallback por distancia. Siguen pendientes optimización avanzada, hora de salida configurable y meteorología por múltiples puntos u horas.
+La previsión de viento se consulta explícitamente para el punto de salida y la hora de salida seleccionada. Está implementado el análisis de una ruta real por segmentos: bearing, tailwind/headwind/crosswind, porcentajes ponderados por distancia, análisis del regreso, favorableWindScore y advertencias por riesgo. Si se solicita una ruta favorable al viento, se generan hasta tres alternativas circulares deterministas. Las que quedan dentro de ±20 % de la distancia solicitada se seleccionan por favorabilidad; si ninguna cumple el margen, se entrega la ruta real más cercana como `distance-fallback`. Si no existe previsión para la fecha y hora, se genera una ruta circular normal marcada `weather-unavailable`, sin análisis ni score. Nunca se inventan rutas y el fallo total de routing se diferencia de ambos fallbacks. Siguen pendientes optimización avanzada y meteorología por múltiples puntos u horas.
 
 ### Mapas y GPX
 

@@ -1,22 +1,22 @@
 import type { RoutePlan } from '../../domain/entities/RoutePlan.js';
 import type { RoutePlanRepository } from '../../domain/repositories/RoutePlanRepository.js';
 import type { GeneratedRoute, RoutingService } from '../services/RoutingService.js';
-import type { WeatherService, WindForecast } from '../services/WeatherService.js';
+import { WeatherForecastUnavailableError, type WeatherService, type WindForecast } from '../services/WeatherService.js';
 import { WindRouteAnalyzer, type WindRouteAnalysis } from '../services/WindRouteAnalyzer.js';
 import { classifyWindRisk, windDirectionCardinal, type WindRiskLevel } from '../services/WindRisk.js';
 
 export const WIND_ROUTE_SEEDS = [1, 2, 3] as const;
 export const WIND_ROUTE_DISTANCE_TOLERANCE = 0.2;
-export type RouteSelectionMode = 'wind-optimized' | 'distance-fallback';
+export type RouteSelectionMode = 'wind-optimized' | 'distance-fallback' | 'weather-unavailable';
 
 export interface RouteCandidateSummary {
   seed: number;
   actualDistanceKm: number;
   ascentM?: number;
-  favorableWindScore: number;
-  returnTailwindPercent: number;
-  returnHeadwindPercent: number;
-  returnCrosswindPercent: number;
+  favorableWindScore?: number;
+  returnTailwindPercent?: number;
+  returnHeadwindPercent?: number;
+  returnCrosswindPercent?: number;
   withinDistanceTolerance: boolean;
   selected: boolean;
 }
@@ -24,11 +24,11 @@ export interface RouteCandidateSummary {
 export interface WindOptimizedRouteResult {
   routePlanId: string;
   route: GeneratedRoute;
-  weather: WindForecast;
-  riskLevel: WindRiskLevel;
-  directionCardinal: string;
-  analysis: WindRouteAnalysis;
-  selectedCandidate: number;
+  weather?: WindForecast;
+  riskLevel?: WindRiskLevel;
+  directionCardinal?: string;
+  analysis?: WindRouteAnalysis;
+  selectedCandidate?: number;
   candidateCount: number;
   selectionMode: RouteSelectionMode;
   candidates: RouteCandidateSummary[];
@@ -71,12 +71,34 @@ export class GenerateWindOptimizedRouteUseCase {
   }
 
   async executeForRoutePlan(routePlan: RoutePlan): Promise<WindOptimizedRouteResult> {
-    const forecast = await this.weatherService.getWindForecast({
-      latitude: routePlan.latitude,
-      longitude: routePlan.longitude,
-      date: routePlan.date,
-      referenceHour: 9,
-    });
+    let forecast: WindForecast;
+    try {
+      forecast = await this.weatherService.getWindForecast({
+        latitude: routePlan.latitude,
+        longitude: routePlan.longitude,
+        date: routePlan.date,
+        startTime: routePlan.startTime,
+      });
+    } catch (error) {
+      if (!(error instanceof WeatherForecastUnavailableError)) throw error;
+      const route = await this.routingService.generateRoundTrip({
+        start: { latitude: routePlan.latitude, longitude: routePlan.longitude },
+        targetDistanceKm: routePlan.distanceKm,
+      });
+      return {
+        routePlanId: routePlan.id,
+        route,
+        candidateCount: 1,
+        selectionMode: 'weather-unavailable',
+        candidates: [{
+          seed: 1,
+          actualDistanceKm: route.distanceM / 1000,
+          ...(route.ascentM === undefined ? {} : { ascentM: route.ascentM }),
+          withinDistanceTolerance: isDistanceWithinTolerance(route.distanceM / 1000, routePlan.distanceKm),
+          selected: true,
+        }],
+      };
+    }
 
     const candidates: AnalyzedCandidate[] = [];
 

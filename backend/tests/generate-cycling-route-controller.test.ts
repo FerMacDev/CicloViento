@@ -50,3 +50,17 @@ test('generate route controller returns the weather forecast message for a futur
   assert.equal(res.statusCode, 422);
   assert.deepEqual(res.body, { message: 'La previsión meteorológica todavía no está disponible para esta fecha.' });
 });
+
+test('generate route controller exposes a safe weather-unavailable fallback without wind scores', async () => {
+  const controller = new GenerateCyclingRouteController({ execute: async () => ({
+    routePlanId: 'plan', routePlan: { distanceKm: 50, elevationGainM: 700, favorableWind: true },
+    route: { start: { latitude: 0, longitude: 0 }, geometry: [{ latitude: 0, longitude: 0 }, { latitude: 0, longitude: 1 }], distanceM: 50_000, durationS: 3_600 },
+    optimization: { candidateCount: 1, selectionMode: 'weather-unavailable', candidates: [] },
+  }) } as never);
+  const res = response();
+  await controller.handle({ params: { id: 'plan' }, authenticatedUser: { userId: 'user' } } as never, res.value as never, () => {});
+  const optimization = (res.body as { optimization: Record<string, unknown> }).optimization;
+  assert.equal(optimization.selectionMode, 'weather-unavailable');
+  assert.equal('wind' in optimization, false);
+  assert.equal('analysis' in optimization, false);
+});

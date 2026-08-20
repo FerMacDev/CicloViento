@@ -8,12 +8,12 @@ import {
   WindOptimizedRouteNotFoundError,
 } from '../src/application/use-cases/GenerateWindOptimizedRouteUseCase.js';
 import type { GeneratedRoute, RoutingService } from '../src/application/services/RoutingService.js';
-import type { WeatherService } from '../src/application/services/WeatherService.js';
+import { WeatherForecastUnavailableError, type WeatherService } from '../src/application/services/WeatherService.js';
 import type { RoutePlanRepository } from '../src/domain/repositories/RoutePlanRepository.js';
 import { RoutePlan } from '../src/domain/entities/RoutePlan.js';
 
 const plan = RoutePlan.create({
-  id: 'plan-1', userId: 'user-1', startLocation: 'Madrid', date: '2099-01-01',
+  id: 'plan-1', userId: 'user-1', startLocation: 'Madrid', date: '2099-01-01', startTime: '09:00',
   distanceKm: 50, elevationGainM: 700, favorableWind: true, latitude: 40.4, longitude: -3.7, createdAt: new Date(),
 });
 
@@ -133,6 +133,19 @@ test('uses a distance fallback after partial provider failures without a fourth 
 test('returns a controlled routing error only when all candidates fail', async () => {
   const failed = createUseCase({ 1: 50, 2: 50, 3: 50 }, { 1: 1, 2: 1, 3: 1 }, [1, 2, 3]);
   await assert.rejects(() => failed.useCase.execute('plan-1', 'user-1'), NoGeneratedWindRouteError);
+});
+
+test('generates one real normal route when weather is not yet available', async () => {
+  const routing = new RoutingFake({ 1: 50 });
+  const unavailableWeather: WeatherService = { async getWindForecast() { throw new WeatherForecastUnavailableError(); } };
+  const result = await new GenerateWindOptimizedRouteUseCase(new Repository(plan), routing, unavailableWeather).execute('plan-1', 'user-1');
+
+  assert.equal(result.selectionMode, 'weather-unavailable');
+  assert.equal(result.candidateCount, 1);
+  assert.equal(result.weather, undefined);
+  assert.equal(result.analysis, undefined);
+  assert.equal(result.candidates[0].selected, true);
+  assert.deepEqual(routing.calls, [1]);
 });
 
 test('keeps ownership failures indistinguishable from a missing route plan', async () => {

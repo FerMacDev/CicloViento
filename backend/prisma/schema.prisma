@@ -23,6 +23,7 @@ model RoutePlan {
   userId String @db.Uuid
   startLocation String
   date DateTime @db.Date
+  startTime String @default("09:00")
   distanceKm Float
   elevationGainM Int
   favorableWind Boolean @default(false)

@@ -23,7 +23,7 @@ export class GenerateCyclingRouteUseCase {
     private readonly windOptimizedRouteUseCase?: GenerateWindOptimizedRouteUseCase,
   ) {}
 
-  async execute(routePlanId: string, authenticatedUserId: string): Promise<{ routePlanId: string; routePlan: { startLocation: string; date: string; distanceKm: number; elevationGainM: number; favorableWind: boolean }; route: GeneratedRoute; optimization?: WindOptimizedRouteResult }> {
+  async execute(routePlanId: string, authenticatedUserId: string): Promise<{ routePlanId: string; routePlan: { startLocation: string; date: string; startTime: string; distanceKm: number; elevationGainM: number; favorableWind: boolean }; route: GeneratedRoute; optimization?: WindOptimizedRouteResult }> {
     const routePlan = await this.routePlanRepository.findById(routePlanId);
 
     // A missing plan and a plan owned by someone else are deliberately indistinguishable over HTTP.
@@ -36,7 +36,7 @@ export class GenerateCyclingRouteUseCase {
       const optimization = await this.windOptimizedRouteUseCase.executeForRoutePlan(routePlan);
       return {
         routePlanId: routePlan.id,
-        routePlan: { startLocation: routePlan.startLocation, date: routePlan.date, distanceKm: routePlan.distanceKm, elevationGainM: routePlan.elevationGainM, favorableWind: true },
+        routePlan: { startLocation: routePlan.startLocation, date: routePlan.date, startTime: routePlan.startTime, distanceKm: routePlan.distanceKm, elevationGainM: routePlan.elevationGainM, favorableWind: true },
         route: optimization.route,
         optimization,
       };
@@ -52,6 +52,7 @@ export class GenerateCyclingRouteUseCase {
       routePlan: {
         startLocation: routePlan.startLocation,
         date: routePlan.date,
+        startTime: routePlan.startTime,
         distanceKm: routePlan.distanceKm,
         elevationGainM: routePlan.elevationGainM,
         favorableWind: routePlan.favorableWind,

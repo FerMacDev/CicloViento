@@ -26,6 +26,7 @@ export function PlanRoutePage() {
   const [form, setForm] = useState({
     startLocation: "",
     date: "",
+    startTime: "09:00",
     distanceKm: 80,
     elevationGainM: 700,
     favorableWind: false,
@@ -121,7 +122,7 @@ export function PlanRoutePage() {
       <section className="form-card success-card">
         <h1>Planificación guardada</h1>
         <p>
-          {result.startLocation} · {result.date}
+          {result.startLocation} · {result.date} · {result.startTime}
         </p>
         {error && <p className="form-error">{error}</p>}
         <StartLocationMap
@@ -150,7 +151,11 @@ export function PlanRoutePage() {
             </p>
             {route.optimization && (
               <section>
-                {route.optimization.selectionMode === "wind-optimized" ? (
+                {route.optimization.selectionMode === "weather-unavailable" ? (
+                  <p>
+                    La previsión meteorológica todavía no está disponible para esta fecha. Se ha generado un recorrido circular normal sin análisis ni optimización por viento.
+                  </p>
+                ) : route.optimization.selectionMode === "wind-optimized" ? (
                   <p>
                     Se han comparado {route.optimization.candidateCount} alternativas y se ha seleccionado la más favorable para el viento durante el regreso. Distancia generada: {route.actualDistanceKm.toFixed(1)} km.
                   </p>
@@ -159,18 +164,20 @@ export function PlanRoutePage() {
                     No se encontró una alternativa dentro del margen de ±20 % de la distancia solicitada. Se muestra la ruta disponible más cercana: {route.actualDistanceKm.toFixed(1)} km frente a {route.requestedDistanceKm} km solicitados. El viento se ha analizado, pero esta ruta no se considera optimizada por distancia.
                   </p>
                 )}
-                <p>Puntuación favorable para el regreso: {route.optimization.analysis.favorableWindScore.toFixed(1)} / 100</p>
-                <p>Regreso — Cola: {route.optimization.analysis.returnTailwindPercent.toFixed(1)}% · Lateral: {route.optimization.analysis.returnCrosswindPercent.toFixed(1)}% · Frontal: {route.optimization.analysis.returnHeadwindPercent.toFixed(1)}%</p>
-                {route.optimization.wind.riskLevel === "high" && <p className="form-error">Las condiciones previstas de viento requieren precaución.</p>}
-                {route.optimization.wind.riskLevel === "dangerous" && <p className="form-error">Las condiciones previstas de viento pueden ser peligrosas. La favorabilidad del recorrido no implica que sea seguro realizarlo.</p>}
-                <h2>Rutas analizadas</h2>
-                {route.optimization.candidates.map((candidate) => (
+                {route.optimization.analysis && route.optimization.wind && <>
+                  <p>Puntuación favorable para el regreso: {route.optimization.analysis.favorableWindScore.toFixed(1)} / 100</p>
+                  <p>Regreso — Cola: {route.optimization.analysis.returnTailwindPercent.toFixed(1)}% · Lateral: {route.optimization.analysis.returnCrosswindPercent.toFixed(1)}% · Frontal: {route.optimization.analysis.returnHeadwindPercent.toFixed(1)}%</p>
+                  {route.optimization.wind.riskLevel === "high" && <p className="form-error">Las condiciones previstas de viento requieren precaución.</p>}
+                  {route.optimization.wind.riskLevel === "dangerous" && <p className="form-error">Las condiciones previstas de viento pueden ser peligrosas. La favorabilidad del recorrido no implica que sea seguro realizarlo.</p>}
+                  <h2>Rutas analizadas</h2>
+                </>}
+                {route.optimization.analysis && route.optimization.candidates.map((candidate) => (
                   <article key={candidate.seed}>
                     <h3>Ruta {candidate.seed}{candidate.selected ? " · Seleccionada" : ""}</h3>
                     <p>{candidate.actualDistanceKm.toFixed(1)} km{candidate.ascentM === undefined ? "" : ` · ${Math.round(candidate.ascentM)} m de desnivel`}</p>
                     <p>{candidate.withinDistanceTolerance ? "Dentro del margen de distancia solicitado." : "Fuera del margen de distancia solicitado."}</p>
-                    <p>Score: {candidate.favorableWindScore.toFixed(1)}</p>
-                    <p>Regreso: {candidate.returnTailwindPercent.toFixed(1)}% cola / {candidate.returnCrosswindPercent.toFixed(1)}% lateral / {candidate.returnHeadwindPercent.toFixed(1)}% frontal</p>
+                    <p>Score: {candidate.favorableWindScore?.toFixed(1)}</p>
+                    <p>Regreso: {candidate.returnTailwindPercent?.toFixed(1)}% cola / {candidate.returnCrosswindPercent?.toFixed(1)}% lateral / {candidate.returnHeadwindPercent?.toFixed(1)}% frontal</p>
                   </article>
                 ))}
               </section>
@@ -251,6 +258,14 @@ export function PlanRoutePage() {
             type="date"
             value={form.date}
             onChange={(e) => setForm({ ...form, date: e.target.value })}
+          />
+        </label>
+        <label>
+          Hora de salida
+          <input
+            type="time"
+            value={form.startTime}
+            onChange={(e) => setForm({ ...form, startTime: e.target.value })}
           />
         </label>
         <label>

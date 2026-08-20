@@ -1,4 +1,4 @@
-export interface RoutePlanRequest { startLocation: string; date: string; distanceKm: number; elevationGainM: number; favorableWind: boolean; }
+export interface RoutePlanRequest { startLocation: string; date: string; startTime: string; distanceKm: number; elevationGainM: number; favorableWind: boolean; }
 export interface RoutePlanResponse extends RoutePlanRequest { id: string; latitude: number; longitude: number; createdAt: string; }
 export interface RouteCoordinate { latitude: number; longitude: number; }
 export interface GeneratedRouteResponse {
@@ -21,21 +21,21 @@ export interface RouteCandidateSummary {
   seed: number;
   actualDistanceKm: number;
   ascentM?: number;
-  favorableWindScore: number;
-  returnTailwindPercent: number;
-  returnHeadwindPercent: number;
-  returnCrosswindPercent: number;
+  favorableWindScore?: number;
+  returnTailwindPercent?: number;
+  returnHeadwindPercent?: number;
+  returnCrosswindPercent?: number;
   withinDistanceTolerance: boolean;
   selected: boolean;
 }
 
-export type RouteSelectionMode = 'wind-optimized' | 'distance-fallback';
+export type RouteSelectionMode = 'wind-optimized' | 'distance-fallback' | 'weather-unavailable';
 
 export interface WindOptimizedRouteResponse {
   candidateCount: number;
-  selectedCandidate: number;
+  selectedCandidate?: number;
   selectionMode: RouteSelectionMode;
-  wind: WindAnalysisResponse['wind'];
-  analysis: WindAnalysisResponse['analysis'];
+  wind?: WindAnalysisResponse['wind'];
+  analysis?: WindAnalysisResponse['analysis'];
   candidates: RouteCandidateSummary[];
 }

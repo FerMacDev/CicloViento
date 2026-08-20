@@ -12,7 +12,7 @@ const route = {
 };
 
 function generated(favorableWind: boolean) {
-  return { routePlanId: 'plan', routePlan: { startLocation: 'Alcalá de Henares', date: '2026-08-25', distanceKm: 40, elevationGainM: 500, favorableWind }, route };
+  return { routePlanId: 'plan', routePlan: { startLocation: 'Alcalá de Henares', date: '2026-08-25', startTime: '09:00', distanceKm: 40, elevationGainM: 500, favorableWind }, route };
 }
 
 test('GenerateRouteGpxUseCase reuses the normal route result and returns safe GPX data', async () => {
