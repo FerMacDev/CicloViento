@@ -14,6 +14,7 @@ function response() {
 test('generate route controller exposes only the optimized route summary', async () => {
   const result = {
     routePlanId: 'plan', routePlan: { distanceKm: 50, elevationGainM: 700, favorableWind: true },
+    routeKind: 'round-trip' as const,
     route: { start: { latitude: 0, longitude: 0 }, geometry: [{ latitude: 0, longitude: 0 }, { latitude: 0, longitude: 1 }], distanceM: 50_000, durationS: 3_600 },
     optimization: {
       candidateCount: 2, selectedCandidate: 2, selectionMode: 'wind-optimized',
@@ -54,6 +55,7 @@ test('generate route controller returns the weather forecast message for a futur
 test('generate route controller exposes a safe weather-unavailable fallback without wind scores', async () => {
   const controller = new GenerateCyclingRouteController({ execute: async () => ({
     routePlanId: 'plan', routePlan: { distanceKm: 50, elevationGainM: 700, favorableWind: true },
+    routeKind: 'round-trip' as const,
     route: { start: { latitude: 0, longitude: 0 }, geometry: [{ latitude: 0, longitude: 0 }, { latitude: 0, longitude: 1 }], distanceM: 50_000, durationS: 3_600 },
     optimization: { candidateCount: 1, selectionMode: 'weather-unavailable', candidates: [] },
   }) } as never);
@@ -63,4 +65,19 @@ test('generate route controller exposes a safe weather-unavailable fallback with
   assert.equal(optimization.selectionMode, 'weather-unavailable');
   assert.equal('wind' in optimization, false);
   assert.equal('analysis' in optimization, false);
+});
+
+test('generate route controller exposes an out-and-back fallback without pretending it was wind optimized', async () => {
+  const controller = new GenerateCyclingRouteController({ execute: async () => ({
+    routePlanId: 'plan', routePlan: { distanceKm: 50, elevationGainM: 700, favorableWind: true },
+    routeKind: 'out-and-back' as const, fallbackReason: 'round-trip-unavailable' as const,
+    route: { start: { latitude: 0, longitude: 0 }, geometry: [{ latitude: 0, longitude: 0 }, { latitude: 1, longitude: 1 }, { latitude: 0, longitude: 0 }], distanceM: 50_000, durationS: 3_600 },
+    optimization: { candidateCount: 0, candidates: [], weather: { windSpeedKmh: 20, windGustKmh: 25, windDirectionDegrees: 270 }, directionCardinal: 'W', riskLevel: 'normal', analysis: { favorableWindScore: 50 } },
+  }) } as never);
+  const res = response();
+  await controller.handle({ params: { id: 'plan' }, authenticatedUser: { userId: 'user' } } as never, res.value as never, () => {});
+  const payload = res.body as Record<string, unknown>;
+  assert.equal(payload.routeKind, 'out-and-back');
+  assert.equal(payload.fallbackReason, 'round-trip-unavailable');
+  assert.equal('selectionMode' in (payload.optimization as Record<string, unknown>), false);
 });

@@ -1,6 +1,6 @@
 import type { RoutePlan } from '../../domain/entities/RoutePlan.js';
 import type { RoutePlanRepository } from '../../domain/repositories/RoutePlanRepository.js';
-import type { GeneratedRoute, RoutingService } from '../services/RoutingService.js';
+import { RouteNotFoundError, type GeneratedRoute, type RoutingService } from '../services/RoutingService.js';
 import { WeatherForecastUnavailableError, type WeatherService, type WindForecast } from '../services/WeatherService.js';
 import { WindRouteAnalyzer, type WindRouteAnalysis } from '../services/WindRouteAnalyzer.js';
 import { classifyWindRisk, windDirectionCardinal, type WindRiskLevel } from '../services/WindRisk.js';
@@ -30,8 +30,10 @@ export interface WindOptimizedRouteResult {
   analysis?: WindRouteAnalysis;
   selectedCandidate?: number;
   candidateCount: number;
-  selectionMode: RouteSelectionMode;
+  selectionMode?: RouteSelectionMode;
   candidates: RouteCandidateSummary[];
+  routeKind: 'round-trip' | 'out-and-back';
+  fallbackReason?: 'round-trip-unavailable';
 }
 
 export class WindOptimizedRouteNotFoundError extends Error {
@@ -81,15 +83,14 @@ export class GenerateWindOptimizedRouteUseCase {
       });
     } catch (error) {
       if (!(error instanceof WeatherForecastUnavailableError)) throw error;
-      const route = await this.routingService.generateRoundTrip({
-        start: { latitude: routePlan.latitude, longitude: routePlan.longitude },
-        targetDistanceKm: routePlan.distanceKm,
-      });
+      const { route, routeKind } = await this.generateRouteWithFallback(routePlan);
       return {
         routePlanId: routePlan.id,
         route,
         candidateCount: 1,
         selectionMode: 'weather-unavailable',
+        routeKind,
+        ...(routeKind === 'out-and-back' ? { fallbackReason: 'round-trip-unavailable' as const } : {}),
         candidates: [{
           seed: 1,
           actualDistanceKm: route.distanceM / 1000,
@@ -101,6 +102,7 @@ export class GenerateWindOptimizedRouteUseCase {
     }
 
     const candidates: AnalyzedCandidate[] = [];
+    const failures: unknown[] = [];
 
     for (const seed of WIND_ROUTE_SEEDS) {
       try {
@@ -117,12 +119,32 @@ export class GenerateWindOptimizedRouteUseCase {
           distanceDifferenceKm: Math.abs(actualDistanceKm - routePlan.distanceKm),
           withinDistanceTolerance: isDistanceWithinTolerance(actualDistanceKm, routePlan.distanceKm),
         });
-      } catch {
+      } catch (error) {
         // A failed provider candidate does not prevent trying the next deterministic seed.
+        failures.push(error);
       }
     }
 
-    if (candidates.length === 0) throw new NoGeneratedWindRouteError();
+    if (candidates.length === 0) {
+      const technicalFailure = failures.find((error) => !(error instanceof RouteNotFoundError));
+      if (technicalFailure) throw technicalFailure;
+      const route = await this.routingService.generateOutAndBack({
+        start: { latitude: routePlan.latitude, longitude: routePlan.longitude },
+        targetDistanceKm: routePlan.distanceKm,
+      });
+      return {
+        routePlanId: routePlan.id,
+        route,
+        weather: forecast,
+        riskLevel: classifyWindRisk(forecast),
+        directionCardinal: windDirectionCardinal(forecast.windDirectionDegrees),
+        analysis: this.analyzer.analyze(route, forecast),
+        candidateCount: 0,
+        candidates: [],
+        routeKind: 'out-and-back',
+        fallbackReason: 'round-trip-unavailable',
+      };
+    }
 
     const optimizedCandidates = candidates.filter((candidate) => candidate.withinDistanceTolerance);
     const selectionMode: RouteSelectionMode = optimizedCandidates.length > 0
@@ -145,7 +167,18 @@ export class GenerateWindOptimizedRouteUseCase {
       candidateCount: candidates.length,
       selectionMode,
       candidates: summaries,
+      routeKind: 'round-trip',
     };
+  }
+
+  private async generateRouteWithFallback(routePlan: RoutePlan): Promise<{ route: GeneratedRoute; routeKind: 'round-trip' | 'out-and-back' }> {
+    const start = { latitude: routePlan.latitude, longitude: routePlan.longitude };
+    try {
+      return { route: await this.routingService.generateRoundTrip({ start, targetDistanceKm: routePlan.distanceKm }), routeKind: 'round-trip' };
+    } catch (error) {
+      if (!(error instanceof RouteNotFoundError)) throw error;
+      return { route: await this.routingService.generateOutAndBack({ start, targetDistanceKm: routePlan.distanceKm }), routeKind: 'out-and-back' };
+    }
   }
 }
 

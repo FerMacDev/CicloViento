@@ -27,6 +27,8 @@ export class GenerateCyclingRouteController {
         requestedDistanceKm: result.routePlan.distanceKm,
         requestedElevationGainM: result.routePlan.elevationGainM,
         favorableWindRequested: result.routePlan.favorableWind,
+        routeKind: result.routeKind,
+        ...(result.fallbackReason === undefined ? {} : { fallbackReason: result.fallbackReason }),
         actualDistanceKm: result.route.distanceM / 1000,
         durationSeconds: result.route.durationS,
         ascentM: result.route.ascentM,
@@ -37,7 +39,7 @@ export class GenerateCyclingRouteController {
           optimization: {
             candidateCount: result.optimization.candidateCount,
             selectedCandidate: result.optimization.selectedCandidate,
-            selectionMode: result.optimization.selectionMode,
+            ...(result.optimization.selectionMode === undefined ? {} : { selectionMode: result.optimization.selectionMode }),
             ...(result.optimization.weather === undefined ? {} : {
               wind: {
                 speedKmh: result.optimization.weather.windSpeedKmh,

@@ -4,10 +4,9 @@ import test from 'node:test';
 import { GenerateCyclingRouteUseCase } from '../src/application/use-cases/GenerateCyclingRouteUseCase.js';
 import {
   GenerateWindOptimizedRouteUseCase,
-  NoGeneratedWindRouteError,
   WindOptimizedRouteNotFoundError,
 } from '../src/application/use-cases/GenerateWindOptimizedRouteUseCase.js';
-import type { GeneratedRoute, RoutingService } from '../src/application/services/RoutingService.js';
+import { RouteNotFoundError, RoutingProviderUnavailableError, type GeneratedRoute, type RoutingService } from '../src/application/services/RoutingService.js';
 import { WeatherForecastUnavailableError, type WeatherService } from '../src/application/services/WeatherService.js';
 import type { RoutePlanRepository } from '../src/domain/repositories/RoutePlanRepository.js';
 import { RoutePlan } from '../src/domain/entities/RoutePlan.js';
@@ -26,11 +25,12 @@ class Repository implements RoutePlanRepository {
 class RoutingFake implements RoutingService {
   readonly maximumRoundTripDistanceKm = 100;
   readonly calls: number[] = [];
-  constructor(private readonly distances: Record<number, number>, private readonly failures: number[] = []) {}
+  fallbackCalls = 0;
+  constructor(private readonly distances: Record<number, number>, private readonly failures: number[] = [], private readonly fallbackRoute?: GeneratedRoute) {}
   async generateRoundTrip(input: { seed?: number }): Promise<GeneratedRoute> {
     const seed = input.seed ?? 1;
     this.calls.push(seed);
-    if (this.failures.includes(seed)) throw new Error('provider failed');
+    if (this.failures.includes(seed)) throw new RouteNotFoundError();
     return {
       start: { latitude: 0, longitude: 0 },
       geometry: [{ latitude: 0, longitude: 0 }, { latitude: 0, longitude: seed }],
@@ -38,6 +38,11 @@ class RoutingFake implements RoutingService {
       durationS: 3600,
       ascentM: 500,
     };
+  }
+  async generateOutAndBack(): Promise<GeneratedRoute> {
+    this.fallbackCalls += 1;
+    if (!this.fallbackRoute) throw new RouteNotFoundError();
+    return this.fallbackRoute;
   }
 }
 
@@ -130,9 +135,32 @@ test('uses a distance fallback after partial provider failures without a fourth 
   assert.deepEqual(routing.calls, [1, 2, 3]);
 });
 
-test('returns a controlled routing error only when all candidates fail', async () => {
+test('uses a real out-and-back route when every circular candidate is unavailable', async () => {
+  const fallbackRoute: GeneratedRoute = { start: { latitude: 0, longitude: 0 }, geometry: [{ latitude: 0, longitude: 0 }, { latitude: 1, longitude: 1 }, { latitude: 0, longitude: 0 }], distanceM: 52_000, durationS: 4_000 };
+  const routing = new RoutingFake({ 1: 50, 2: 50, 3: 50 }, [1, 2, 3], fallbackRoute);
+  const result = await new GenerateWindOptimizedRouteUseCase(new Repository(plan), routing, new WeatherFake(), analyzer({ 1: 1 }) as never).execute('plan-1', 'user-1');
+
+  assert.deepEqual(routing.calls, [1, 2, 3]);
+  assert.equal(routing.fallbackCalls, 1);
+  assert.equal(result.routeKind, 'out-and-back');
+  assert.equal(result.fallbackReason, 'round-trip-unavailable');
+  assert.equal(result.selectionMode, undefined);
+  assert.equal(result.analysis?.favorableWindScore, 1);
+});
+
+test('does not use an out-and-back fallback for technical routing failures', async () => {
+  class TechnicalFailureRoutingFake extends RoutingFake {
+    override async generateRoundTrip(): Promise<GeneratedRoute> { throw new RoutingProviderUnavailableError(); }
+  }
+  const routing = new TechnicalFailureRoutingFake({});
+  const useCase = new GenerateWindOptimizedRouteUseCase(new Repository(plan), routing, new WeatherFake(), analyzer({}) as never);
+  await assert.rejects(() => useCase.execute('plan-1', 'user-1'), RoutingProviderUnavailableError);
+  assert.equal(routing.fallbackCalls, 0);
+});
+
+test('propagates a controlled route-not-found error when all circular candidates and the real fallback are unavailable', async () => {
   const failed = createUseCase({ 1: 50, 2: 50, 3: 50 }, { 1: 1, 2: 1, 3: 1 }, [1, 2, 3]);
-  await assert.rejects(() => failed.useCase.execute('plan-1', 'user-1'), NoGeneratedWindRouteError);
+  await assert.rejects(() => failed.useCase.execute('plan-1', 'user-1'), RouteNotFoundError);
 });
 
 test('generates one real normal route when weather is not yet available', async () => {

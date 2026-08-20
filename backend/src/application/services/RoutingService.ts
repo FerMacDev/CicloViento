@@ -18,9 +18,15 @@ export interface GenerateRoundTripInput {
   seed?: number;
 }
 
+export interface GenerateOutAndBackInput {
+  start: RouteCoordinate;
+  targetDistanceKm: number;
+}
+
 export interface RoutingService {
   readonly maximumRoundTripDistanceKm: number;
   generateRoundTrip(input: GenerateRoundTripInput): Promise<GeneratedRoute>;
+  generateOutAndBack(input: GenerateOutAndBackInput): Promise<GeneratedRoute>;
 }
 
 export class RouteNotFoundError extends Error {

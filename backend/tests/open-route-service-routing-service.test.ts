@@ -48,9 +48,49 @@ test('OpenRouteServiceRoutingService forwards deterministic candidate seeds with
   globalThis.fetch = originalFetch;
 });
 
+test('OpenRouteServiceRoutingService builds an out-and-back route from two separately routed legs', async () => {
+  const requests: Array<{ coordinates: [number, number][] }> = [];
+  globalThis.fetch = async (_input, init) => {
+    const body = JSON.parse(String(init?.body)) as { coordinates: [number, number][] };
+    requests.push(body);
+    return response({
+      features: [{
+        geometry: { type: 'LineString', coordinates: body.coordinates },
+        properties: { summary: { distance: 25_000, duration: 3_600 }, ascent: 250, descent: 250 },
+      }],
+    });
+  };
+  const start = { latitude: 40.48, longitude: -3.36 };
+  const result = await new OpenRouteServiceRoutingService('test-key').generateOutAndBack({ start, targetDistanceKm: 50 });
+
+  assert.equal(requests.length, 2);
+  assert.deepEqual(requests[0].coordinates[0], [-3.36, 40.48]);
+  assert.deepEqual(requests[1].coordinates[1], [-3.36, 40.48]);
+  assert.equal(result.distanceM, 50_000);
+  assert.equal(result.durationS, 7_200);
+  assert.deepEqual(result.geometry[0], start);
+  assert.deepEqual(result.geometry.at(-1), start);
+  globalThis.fetch = originalFetch;
+});
+
+test('OpenRouteServiceRoutingService limits an unavailable out-and-back destination search to three real attempts', async () => {
+  let calls = 0;
+  globalThis.fetch = async () => { calls += 1; return response({}, 404); };
+
+  await assert.rejects(
+    () => new OpenRouteServiceRoutingService('test-key').generateOutAndBack({ start: { latitude: 40.48, longitude: -3.36 }, targetDistanceKm: 50 }),
+    RouteNotFoundError,
+  );
+
+  assert.equal(calls, 3);
+  globalThis.fetch = originalFetch;
+});
+
 test('OpenRouteServiceRoutingService maps provider failures and malformed GeoJSON to controlled errors', async () => {
   globalThis.fetch = async () => response({}, 404);
   await assert.rejects(() => new OpenRouteServiceRoutingService('test-key').generateRoundTrip({ start: { latitude: 40, longitude: -3 }, targetDistanceKm: 40 }), RouteNotFoundError);
+  globalThis.fetch = async () => response({}, 400);
+  await assert.rejects(() => new OpenRouteServiceRoutingService('test-key').generateRoundTrip({ start: { latitude: 40, longitude: -3 }, targetDistanceKm: 40 }), RoutingProviderInvalidResponseError);
   globalThis.fetch = async () => response({ features: [] });
   await assert.rejects(() => new OpenRouteServiceRoutingService('test-key').generateRoundTrip({ start: { latitude: 40, longitude: -3 }, targetDistanceKm: 40 }), RoutingProviderInvalidResponseError);
   globalThis.fetch = async () => response({}, 503);

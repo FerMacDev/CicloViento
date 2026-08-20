@@ -6,6 +6,8 @@ export interface GeneratedRouteResponse {
   requestedDistanceKm: number;
   requestedElevationGainM: number;
   favorableWindRequested: boolean;
+  routeKind: 'round-trip' | 'out-and-back';
+  fallbackReason?: 'round-trip-unavailable';
   actualDistanceKm: number;
   durationSeconds: number;
   ascentM?: number;
@@ -34,7 +36,7 @@ export type RouteSelectionMode = 'wind-optimized' | 'distance-fallback' | 'weath
 export interface WindOptimizedRouteResponse {
   candidateCount: number;
   selectedCandidate?: number;
-  selectionMode: RouteSelectionMode;
+  selectionMode?: RouteSelectionMode;
   wind?: WindAnalysisResponse['wind'];
   analysis?: WindAnalysisResponse['analysis'];
   candidates: RouteCandidateSummary[];

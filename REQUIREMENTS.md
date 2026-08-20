@@ -26,7 +26,7 @@ El alcance funcional se desarrollará de forma incremental. Este documento difer
 - Frontend de registro, login, cambio obligatorio de contraseña, dashboard mínimo y cierre de sesión local.
 - Solicitud RoutePlan persistida con preferencias de ruta, incluida hora de salida obligatoria `HH:mm`, y formulario protegido `/plan-route`.
 - Geocodificación del punto de partida, persistencia de latitude/longitude y mapa con marcador del punto de salida.
-- Generación explícita de un recorrido ciclista circular real mediante openrouteservice, perfil `cycling-road` y geometría GeoJSON.
+- Generación explícita de un recorrido ciclista real mediante openrouteservice, perfil `cycling-road` y geometría GeoJSON: circuito cuando ORS lo ofrece y fallback de ida y vuelta con dos trayectos reales cuando el circuito no existe.
 - Visualización del recorrido generado mediante una polyline de Leaflet/OpenStreetMap.
 - Visualización informativa del viento sobre el mismo mapa de la ruta mediante flechas ancladas a puntos reales de la geometría, activables o desactivables y ocultas cuando no existe previsión; los colores representan el nivel de riesgo ya calculado y la leyenda lo expresa también mediante texto.
 - Consulta meteorológica mediante Open-Meteo para la fecha y hora de salida: condición general, temperatura, sensación térmica, probabilidad de precipitación, velocidad, dirección, rachas y clasificación de riesgo.
@@ -65,15 +65,15 @@ El registro inicial y el login backend están implementados. El cambio de contra
 
 ### Planificación de rutas
 
-La solicitud de planificación, geocodificación y generación de un único recorrido circular de carretera están implementadas. La distancia generada por el proveedor es aproximada y se muestra separada de la solicitada. La selección de alternativas y la optimización de desnivel siguen pendientes.
+La solicitud de planificación, geocodificación y generación de un recorrido de carretera están implementadas. Se intenta primero un circuito real; únicamente cuando ORS confirma que no existe se prueban hasta tres destinos deterministas para una ida y vuelta, generando ambos sentidos por separado. No se invierte la geometría ni se inventan rutas; una indisponibilidad técnica, timeout, cuota o respuesta inválida se informa como error. La distancia generada por el proveedor es aproximada y se muestra separada de la solicitada. La selección de alternativas y la optimización de desnivel siguen pendientes.
 
 ### Meteorología y viento
 
-La previsión de viento se consulta explícitamente para el punto de salida y la hora de salida seleccionada. Está implementado el análisis de una ruta real por segmentos: bearing, tailwind/headwind/crosswind, porcentajes ponderados por distancia, análisis del regreso, favorableWindScore y advertencias por riesgo. Si se solicita una ruta favorable al viento, se generan hasta tres alternativas circulares deterministas. Las que quedan dentro de ±20 % de la distancia solicitada se seleccionan por favorabilidad; si ninguna cumple el margen, se entrega la ruta real más cercana como `distance-fallback`. Si no existe previsión para la fecha y hora, se genera una ruta circular normal marcada `weather-unavailable`, sin análisis ni score. Nunca se inventan rutas y el fallo total de routing se diferencia de ambos fallbacks. Siguen pendientes optimización avanzada y meteorología por múltiples puntos u horas.
+La previsión de viento se consulta explícitamente para el punto de salida y la hora de salida seleccionada. Está implementado el análisis de una ruta real por segmentos: bearing, tailwind/headwind/crosswind, porcentajes ponderados por distancia, análisis del regreso, favorableWindScore y advertencias por riesgo. Si se solicita una ruta favorable al viento, se generan hasta tres alternativas circulares deterministas. Las que quedan dentro de ±20 % de la distancia solicitada se seleccionan por favorabilidad; si ninguna cumple el margen, se entrega la ruta real más cercana como `distance-fallback`. Si no hay circuito, se puede analizar el fallback real `out-and-back`, pero no se etiqueta como ruta optimizada. Si no existe previsión para la fecha y hora, se genera una ruta normal marcada `weather-unavailable`, sin análisis ni score. Nunca se inventan rutas y el fallo total de routing se diferencia de ambos fallbacks. Siguen pendientes optimización avanzada y meteorología por múltiples puntos u horas.
 
 ### Mapas y GPX
 
-El mapa visualiza el punto de partida y la geometría del recorrido generado. Una capa visual opcional muestra aproximadamente siete flechas de dirección del viento sobre el mismo mapa; Leaflet las mantiene ancladas al recorrido durante zoom y desplazamiento. La ruta puede descargarse como GPX 1.1 desde una sesión autenticada; otros formatos e integraciones externas siguen pendientes.
+El mapa visualiza el punto de partida y la geometría del recorrido generado, incluido el fallback de ida y vuelta. Una capa visual opcional muestra aproximadamente siete flechas de dirección del viento sobre el mismo mapa; Leaflet las mantiene ancladas al recorrido durante zoom y desplazamiento. La ruta puede descargarse como GPX 1.1 desde una sesión autenticada; otros formatos e integraciones externas siguen pendientes.
 
 ### IA
 

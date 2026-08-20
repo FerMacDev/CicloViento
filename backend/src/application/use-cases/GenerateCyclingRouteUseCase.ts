@@ -1,5 +1,5 @@
 import type { RoutePlanRepository } from '../../domain/repositories/RoutePlanRepository.js';
-import type { GeneratedRoute, RoutingService } from '../services/RoutingService.js';
+import { RouteNotFoundError, type GeneratedRoute, type RoutingService } from '../services/RoutingService.js';
 import { GenerateWindOptimizedRouteUseCase, type WindOptimizedRouteResult } from './GenerateWindOptimizedRouteUseCase.js';
 
 export class RoutePlanNotFoundError extends Error {
@@ -23,7 +23,7 @@ export class GenerateCyclingRouteUseCase {
     private readonly windOptimizedRouteUseCase?: GenerateWindOptimizedRouteUseCase,
   ) {}
 
-  async execute(routePlanId: string, authenticatedUserId: string): Promise<{ routePlanId: string; routePlan: { startLocation: string; date: string; startTime: string; distanceKm: number; elevationGainM: number; favorableWind: boolean }; route: GeneratedRoute; optimization?: WindOptimizedRouteResult }> {
+  async execute(routePlanId: string, authenticatedUserId: string): Promise<{ routePlanId: string; routePlan: { startLocation: string; date: string; startTime: string; distanceKm: number; elevationGainM: number; favorableWind: boolean }; route: GeneratedRoute; routeKind: 'round-trip' | 'out-and-back'; fallbackReason?: 'round-trip-unavailable'; optimization?: WindOptimizedRouteResult }> {
     const routePlan = await this.routePlanRepository.findById(routePlanId);
 
     // A missing plan and a plan owned by someone else are deliberately indistinguishable over HTTP.
@@ -38,14 +38,22 @@ export class GenerateCyclingRouteUseCase {
         routePlanId: routePlan.id,
         routePlan: { startLocation: routePlan.startLocation, date: routePlan.date, startTime: routePlan.startTime, distanceKm: routePlan.distanceKm, elevationGainM: routePlan.elevationGainM, favorableWind: true },
         route: optimization.route,
+        routeKind: optimization.routeKind,
+        ...(optimization.fallbackReason === undefined ? {} : { fallbackReason: optimization.fallbackReason }),
         optimization,
       };
     }
 
-    const route = await this.routingService.generateRoundTrip({
-      start: { latitude: routePlan.latitude, longitude: routePlan.longitude },
-      targetDistanceKm: routePlan.distanceKm,
-    });
+    const start = { latitude: routePlan.latitude, longitude: routePlan.longitude };
+    let route: GeneratedRoute;
+    let routeKind: 'round-trip' | 'out-and-back' = 'round-trip';
+    try {
+      route = await this.routingService.generateRoundTrip({ start, targetDistanceKm: routePlan.distanceKm });
+    } catch (error) {
+      if (!(error instanceof RouteNotFoundError)) throw error;
+      route = await this.routingService.generateOutAndBack({ start, targetDistanceKm: routePlan.distanceKm });
+      routeKind = 'out-and-back';
+    }
 
     return {
       routePlanId: routePlan.id,
@@ -58,6 +66,8 @@ export class GenerateCyclingRouteUseCase {
         favorableWind: routePlan.favorableWind,
       },
       route,
+      routeKind,
+      ...(routeKind === 'out-and-back' ? { fallbackReason: 'round-trip-unavailable' as const } : {}),
     };
   }
 }

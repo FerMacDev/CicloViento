@@ -3,6 +3,7 @@ import {
   RoutingProviderInvalidResponseError,
   RoutingProviderUnavailableError,
   RoutingRateLimitError,
+  type GenerateOutAndBackInput,
   type GenerateRoundTripInput,
   type GeneratedRoute,
   type RouteCoordinate,
@@ -34,6 +35,62 @@ export class OpenRouteServiceRoutingService implements RoutingService {
   ) {}
 
   async generateRoundTrip(input: GenerateRoundTripInput): Promise<GeneratedRoute> {
+    return this.requestRoute({
+      coordinates: [[input.start.longitude, input.start.latitude]],
+      body: {
+        elevation: true,
+        options: {
+          avoid_features: ['ferries', 'steps'],
+          round_trip: {
+            length: input.targetDistanceKm * 1000,
+            points: 4,
+            seed: input.seed ?? 1,
+          },
+        },
+      },
+      start: input.start,
+    });
+  }
+
+  async generateOutAndBack(input: GenerateOutAndBackInput): Promise<GeneratedRoute> {
+    const errors: unknown[] = [];
+
+    for (const bearingDegrees of [0, 120, 240]) {
+      const destination = destinationFrom(input.start, Math.max(1, input.targetDistanceKm / 2), bearingDegrees);
+      try {
+        const outbound = await this.requestRoute({
+          coordinates: [[input.start.longitude, input.start.latitude], [destination.longitude, destination.latitude]],
+          body: { elevation: true, options: { avoid_features: ['ferries', 'steps'] } },
+          start: input.start,
+        });
+        const inbound = await this.requestRoute({
+          coordinates: [[destination.longitude, destination.latitude], [input.start.longitude, input.start.latitude]],
+          body: { elevation: true, options: { avoid_features: ['ferries', 'steps'] } },
+          start: destination,
+        });
+
+        return {
+          start: input.start,
+          geometry: [...outbound.geometry, ...inbound.geometry.slice(1)],
+          distanceM: outbound.distanceM + inbound.distanceM,
+          durationS: outbound.durationS + inbound.durationS,
+          ...(outbound.ascentM === undefined || inbound.ascentM === undefined ? {} : { ascentM: outbound.ascentM + inbound.ascentM }),
+          ...(outbound.descentM === undefined || inbound.descentM === undefined ? {} : { descentM: outbound.descentM + inbound.descentM }),
+        };
+      } catch (error) {
+        if (!(error instanceof RouteNotFoundError)) throw error;
+        errors.push(error);
+      }
+    }
+
+    throw errors[0] ?? new RouteNotFoundError();
+  }
+
+  private async requestRoute(input: {
+    coordinates: [number, number][];
+    body: Record<string, unknown>;
+    start: RouteCoordinate;
+  }): Promise<GeneratedRoute> {
     if (!this.apiKey) throw new RoutingProviderUnavailableError();
 
     let response: Response;
@@ -47,18 +104,7 @@ export class OpenRouteServiceRoutingService implements RoutingService {
           'Content-Type': 'application/json',
           Accept: 'application/geo+json, application/json',
         },
-        body: JSON.stringify({
-          coordinates: [[input.start.longitude, input.start.latitude]],
-          elevation: true,
-          options: {
-            avoid_features: ['ferries', 'steps'],
-            round_trip: {
-              length: input.targetDistanceKm * 1000,
-              points: 4,
-              seed: input.seed ?? 1,
-            },
-          },
-        }),
+        body: JSON.stringify({ coordinates: input.coordinates, ...input.body }),
         signal: controller.signal,
       });
       clearTimeout(timeout);
@@ -69,7 +115,7 @@ export class OpenRouteServiceRoutingService implements RoutingService {
     if (response.status === 404) throw new RouteNotFoundError();
     if (response.status === 429) throw new RoutingRateLimitError();
     if (!response.ok && response.status >= 500) throw new RoutingProviderUnavailableError();
-    if (!response.ok) throw new RouteNotFoundError();
+    if (!response.ok) throw new RoutingProviderInvalidResponseError();
 
     let payload: OrsGeoJsonResponse;
     try {
@@ -103,6 +149,21 @@ export class OpenRouteServiceRoutingService implements RoutingService {
       return [{ latitude: coordinate[1], longitude: coordinate[0] }];
     });
   }
+}
+
+function destinationFrom(start: RouteCoordinate, distanceKm: number, bearingDegrees: number): RouteCoordinate {
+  const earthRadiusKm = 6371;
+  const angularDistance = distanceKm / earthRadiusKm;
+  const bearing = bearingDegrees * Math.PI / 180;
+  const latitude = start.latitude * Math.PI / 180;
+  const longitude = start.longitude * Math.PI / 180;
+  const destinationLatitude = Math.asin(Math.sin(latitude) * Math.cos(angularDistance) + Math.cos(latitude) * Math.sin(angularDistance) * Math.cos(bearing));
+  const destinationLongitude = longitude + Math.atan2(Math.sin(bearing) * Math.sin(angularDistance) * Math.cos(latitude), Math.cos(angularDistance) - Math.sin(latitude) * Math.sin(destinationLatitude));
+
+  return {
+    latitude: destinationLatitude * 180 / Math.PI,
+    longitude: ((destinationLongitude * 180 / Math.PI + 540) % 360) - 180,
+  };
 }
 
 function isFiniteNumber(value: unknown): value is number {

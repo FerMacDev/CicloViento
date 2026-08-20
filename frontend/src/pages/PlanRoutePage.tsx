@@ -175,7 +175,7 @@ export function PlanRoutePage() {
         )}
         {route ? (
           <section>
-            <h2>{route.optimization ? "Ruta seleccionada" : "Recorrido generado"}</h2>
+            <h2>{route.routeKind === "out-and-back" ? "Ruta de ida y vuelta" : route.optimization ? "Ruta seleccionada" : "Recorrido generado"}</h2>
             <p>
               Distancia solicitada: {route.requestedDistanceKm} km · Distancia
               generada: {route.actualDistanceKm.toFixed(1)} km
@@ -191,9 +191,18 @@ export function PlanRoutePage() {
                 ? `Duración estimada: ${Math.round(route.durationSeconds / 60)} min`
                 : "Duración estimada no disponible."}
             </p>
+            {route.routeKind === "out-and-back" && !route.optimization && (
+              <p>
+                No ha sido posible generar un recorrido circular en este momento. Se muestra una ruta real de ida y vuelta por carretera. La distancia generada puede diferir de la solicitada. La ruta no ha sido invertida: la ida y el regreso han sido calculados por separado.
+              </p>
+            )}
             {route.optimization && (
               <section>
-                {route.optimization.selectionMode === "weather-unavailable" ? (
+                {route.routeKind === "out-and-back" ? (
+                  <p>
+                    No ha sido posible generar un recorrido circular en este momento. Se muestra una ruta real de ida y vuelta por carretera. La distancia generada puede diferir de la solicitada. La ruta no ha sido invertida: la ida y el regreso han sido calculados por separado. No es una ruta optimizada por viento ni una recomendación de seguridad.
+                  </p>
+                ) : route.optimization.selectionMode === "weather-unavailable" ? (
                   <p>
                     La previsión meteorológica todavía no está disponible para esta fecha. Se ha generado un recorrido circular normal sin análisis ni optimización por viento.
                   </p>
@@ -213,7 +222,7 @@ export function PlanRoutePage() {
                   {route.optimization.wind.riskLevel === "dangerous" && <p className="form-error">Las condiciones previstas de viento pueden ser peligrosas. La favorabilidad del recorrido no implica que sea seguro realizarlo.</p>}
                   <h2>Rutas analizadas</h2>
                 </>}
-                {route.optimization.analysis && route.optimization.candidates.map((candidate) => (
+                {route.routeKind === "round-trip" && route.optimization.analysis && route.optimization.candidates.map((candidate) => (
                   <article key={candidate.seed}>
                     <h3>Ruta {candidate.seed}{candidate.selected ? " · Seleccionada" : ""}</h3>
                     <p>{candidate.actualDistanceKm.toFixed(1)} km{candidate.ascentM === undefined ? "" : ` · ${Math.round(candidate.ascentM)} m de desnivel`}</p>
