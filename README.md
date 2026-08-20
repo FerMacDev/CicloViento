@@ -175,6 +175,8 @@ El botón **Generar recorrido** llama de forma explícita a `POST /route-plans/:
 
 La consulta explícita `GET /route-plans/:id/weather` usa Open-Meteo Forecast API sin API key para este uso. Muestra condición general mediante iconos locales, temperatura, sensación térmica, probabilidad de precipitación, velocidad, rachas, dirección meteorológica y nivel de riesgo. La previsión se consulta para la hora de salida almacenada en RoutePlan: antes de `:30` se usa la hora actual y desde `:30` la siguiente hora, sin interpolar. Si la previsión aún no está disponible, devuelve `422` con un mensaje funcional claro. La interfaz atribuye los datos a Open-Meteo.
 
+La ruta y el viento se muestran en el mismo mapa Leaflet. Cuando ya existe una previsión, una capa activable coloca siete flechas sobre puntos reales del recorrido para indicar hacia dónde sopla el viento: una dirección meteorológica del oeste (`270°`) se representa hacia el este (`90°`). Las flechas permanecen ancladas al mapa durante el zoom y el desplazamiento. No se muestran si no hay previsión disponible y no existe un segundo mapa meteorológico. Como mejora futura, el viento podrá variar por tramos según la duración estimada y los pronósticos horarios.
+
 ## Análisis del viento
 
 `POST /route-plans/:id/wind-analysis` requiere Bearer JWT y analiza el recorrido generado. Tailwind es viento favorable en el avance; headwind es contrario y crosswind lateral. La dirección meteorológica indica de dónde viene el viento. Los porcentajes se calculan por distancia y la vuelta se aproxima como la segunda mitad de la distancia. `favorableWindScore` va de 0 a 100: cuanto mayor, más favorable es el regreso según cola y lateral.

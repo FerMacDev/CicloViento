@@ -190,6 +190,19 @@ El análisis de viento sigue `POST /route-plans/:id/wind-analysis → authentica
 
 Cuando `RoutePlan.favorableWind=true`, el mismo endpoint `POST /route-plans/:id/generate` delega en `GenerateWindOptimizedRouteUseCase`. Este caso de uso obtiene una única previsión y solicita como máximo tres candidatas secuenciales a `RoutingService` con las semillas deterministas 1, 2 y 3; no realiza una cuarta llamada para fallback. Cada ruta real se conserva y se marca según quede o no dentro de ±20 % de la distancia solicitada. Si existe alguna dentro del margen, se selecciona el mayor `favorableWindScore`; los empates se resuelven por menor diferencia de distancia y, finalmente, por menor semilla, con `selectionMode=wind-optimized`. Si ninguna cumple el margen pero hay rutas reales, se selecciona la de menor diferencia de distancia; los empates se resuelven por mejor score y menor semilla, con `selectionMode=distance-fallback`. Si la previsión no está disponible, genera una única ruta real normal y devuelve `selectionMode=weather-unavailable`, sin meteorología, análisis ni score inventados. Un fallo de ORS no produce geometrías inventadas. `riskLevel` sigue siendo independiente de la favorabilidad: una ruta con riesgo `dangerous` no se presenta como recomendable. La respuesta expone exclusivamente la ruta elegida y resúmenes seguros de candidatas, sin datos crudos de proveedores.
 
+La visualización del recorrido en frontend utiliza un único mapa:
+
+```text
+MapContainer
+├── TileLayer
+├── RoutePolyline
+└── WindDirectionLayer
+```
+
+`WindDirectionLayer` es exclusivamente un componente de frontend: no realiza llamadas API ni conoce ORS u Open-Meteo. Reutiliza los datos meteorológicos ya presentes en PlanRoutePage, selecciona aproximadamente siete puntos interiores de la geometría real y crea marcadores Leaflet con `DivIcon`. La dirección meteorológica indica de dónde procede el viento y se convierte a dirección de desplazamiento con `(meteorologicalDirection + 180) % 360`; el SVG base apunta al norte y rota únicamente en su elemento interno, sin interferir con el transform de posicionamiento de Leaflet. Por ello las flechas permanecen vinculadas a sus coordenadas durante zoom, pan y fitBounds. No existe un segundo mapa meteorológico. Si no hay previsión, incluida la selección `weather-unavailable`, no se crea la capa.
+
+**Limitación actual:** todas las flechas representan el viento de referencia correspondiente a la hora meteorológica utilizada para la salida. No representan todavía la variación temporal o espacial del viento durante todo el recorrido.
+
 La descarga sigue `GET /route-plans/:id/gpx → authentication middleware → must-change-password guard → GenerateRouteGpxController → GenerateRouteGpxUseCase → GenerateCyclingRouteUseCase → GpxGenerator`. `XmlGpxGenerator` está en Application porque transforma exclusivamente `GeneratedRoute` y texto propio a GPX 1.1, sin conocer proveedores ni HTTP. El controller solo fija `Content-Type: application/gpx+xml; charset=utf-8` y `Content-Disposition: attachment`. El caso de uso reutiliza la generación normal u optimizada, por lo que la geometría exportada es la ruta seleccionada por el mismo flujo. Como las geometrías no se persisten, una descarga posterior regenera la ruta; las semillas son deterministas, aunque el proveedor podría cambiar sus resultados con el tiempo.
 
 Por tanto, la futura persistencia o los servicios externos podrán sustituirse sin introducir sus dependencias en las reglas de dominio.

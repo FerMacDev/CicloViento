@@ -8,6 +8,7 @@ import type {
   WindAnalysisResponse,
 } from "../types/route-plan";
 import { StartLocationMap } from "../components/StartLocationMap";
+import { getWindTravelDirection } from "../components/wind-direction";
 
 function weatherCondition(weatherCode: number): { icon: string; label: string } {
   if (weatherCode === 0) return { icon: "☀️", label: "Despejado" };
@@ -19,6 +20,11 @@ function weatherCondition(weatherCode: number): { icon: string; label: string } 
   if ([71, 73, 75, 77, 85, 86].includes(weatherCode)) return { icon: "❄️", label: "Nieve" };
   if ([95, 96, 99].includes(weatherCode)) return { icon: "⛈️", label: "Tormenta" };
   return { icon: "🌤️", label: "Condiciones variables" };
+}
+
+function windCardinal(degrees: number): string {
+  const directions = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"];
+  return directions[Math.round((((degrees % 360) + 360) % 360) / 45) % 8];
 }
 
 export function PlanRoutePage() {
@@ -41,6 +47,7 @@ export function PlanRoutePage() {
   const [windAnalysis, setWindAnalysis] = useState<WindAnalysisResponse | null>(null);
   const [analyzingWind, setAnalyzingWind] = useState(false);
   const [downloadingGpx, setDownloadingGpx] = useState(false);
+  const [showWindOnMap, setShowWindOnMap] = useState(true);
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (
@@ -98,6 +105,7 @@ export function PlanRoutePage() {
     setWindAnalysis(null);
     try {
       setWeather(await getRouteWeather(result.id));
+      setShowWindOnMap(true);
     } catch (e) {
       setError(
         e instanceof ApiError
@@ -108,15 +116,24 @@ export function PlanRoutePage() {
       setLoadingWeather(false);
     }
   }
-  async function analyzeWind() { if (!result) return; setAnalyzingWind(true); setError(""); setWeather(null); try { setWindAnalysis(await analyzeRouteWind(result.id)); } catch (e) { setError(e instanceof ApiError ? e.message : "No se ha podido analizar el viento en la ruta."); } finally { setAnalyzingWind(false); } }
+  async function analyzeWind() { if (!result) return; setAnalyzingWind(true); setError(""); setWeather(null); try { setWindAnalysis(await analyzeRouteWind(result.id)); setShowWindOnMap(true); } catch (e) { setError(e instanceof ApiError ? e.message : "No se ha podido analizar el viento en la ruta."); } finally { setAnalyzingWind(false); } }
   async function downloadGpx() { if (!result || !route) return; setDownloadingGpx(true); setError(""); try { await downloadRouteGpx(result.id); } catch { setError("No se ha podido generar el archivo GPX."); } finally { setDownloadingGpx(false); } }
   function returnToPlanningForm() {
     setResult(null);
     setRoute(null);
     setWeather(null);
     setWindAnalysis(null);
+    setShowWindOnMap(true);
     setError("");
   }
+  const weatherUnavailable = route?.optimization?.selectionMode === "weather-unavailable";
+  const mapWind = weatherUnavailable ? null : weather
+    ? { directionDegrees: weather.windDirectionDegrees, speedKmh: weather.windSpeedKmh, gustKmh: weather.windGustKmh, forecastLabel: weather.forecastDateTime }
+    : windAnalysis
+      ? { directionDegrees: windAnalysis.wind.directionDegrees, speedKmh: windAnalysis.wind.speedKmh, gustKmh: windAnalysis.wind.gustKmh, forecastLabel: `${result?.date ?? ""} · ${result?.startTime ?? ""}` }
+      : route?.optimization?.wind
+        ? { directionDegrees: route.optimization.wind.directionDegrees, speedKmh: route.optimization.wind.speedKmh, gustKmh: route.optimization.wind.gustKmh, forecastLabel: `${result?.date ?? ""} · ${result?.startTime ?? ""}` }
+        : null;
   if (result)
     return (
       <section className="form-card success-card">
@@ -130,7 +147,29 @@ export function PlanRoutePage() {
           longitude={result.longitude}
           startLocation={result.startLocation}
           geometry={route?.geometry}
+          windDirectionDegrees={mapWind?.directionDegrees}
+          showWind={Boolean(mapWind && showWindOnMap)}
         />
+        {route && weatherUnavailable && (
+          <section className="wind-map-unavailable">
+            <strong>Viento no disponible en el mapa</strong>
+            <p>La previsión meteorológica todavía no está disponible para la fecha y hora seleccionadas. La ruta se muestra sin capa de viento.</p>
+          </section>
+        )}
+        {route && mapWind && (
+          <section className="wind-map-controls" aria-label="Capa de viento del mapa">
+            <label className="wind-map-toggle">
+              <input type="checkbox" checked={showWindOnMap} onChange={(event) => setShowWindOnMap(event.target.checked)} />
+              Mostrar viento en el mapa
+            </label>
+            <div className="wind-map-legend">
+              <strong>Viento meteorológico:</strong> {windCardinal(mapWind.directionDegrees)} · {mapWind.directionDegrees}°<br />
+              <strong>Sopla hacia:</strong> {windCardinal(getWindTravelDirection(mapWind.directionDegrees))}<br />
+              <strong>Velocidad:</strong> {mapWind.speedKmh} km/h · <strong>Rachas:</strong> {mapWind.gustKmh} km/h<br />
+              <strong>Previsión:</strong> {mapWind.forecastLabel}
+            </div>
+          </section>
+        )}
         {route ? (
           <section>
             <h2>{route.optimization ? "Ruta seleccionada" : "Recorrido generado"}</h2>

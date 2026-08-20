@@ -262,6 +262,59 @@ p {
   padding: 4rem;
   text-align: center;
 }
+.route-map {
+  margin: 1.25rem 0;
+}
+.wind-direction-div-icon {
+  background: transparent;
+  border: 0;
+}
+.wind-arrow-marker {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(21, 60, 52, 0.3);
+  border-radius: 50%;
+  display: flex;
+  height: 28px;
+  justify-content: center;
+  width: 28px;
+}
+.wind-arrow-icon {
+  fill: #153c34;
+  filter: drop-shadow(0 1px 1px rgba(255, 255, 255, 0.8));
+  height: 21px;
+  transform-origin: center;
+  width: 21px;
+}
+.wind-map-controls,
+.wind-map-unavailable {
+  border: 1px solid #d6e2d8;
+  border-radius: 0.7rem;
+  margin: 0 0 1.25rem;
+  padding: 0.85rem 1rem;
+  text-align: left;
+}
+.wind-map-toggle {
+  align-items: center;
+  display: inline-flex;
+  font-weight: 700;
+  gap: 0.5rem;
+}
+.wind-map-toggle input {
+  margin: 0;
+}
+.wind-map-legend {
+  color: #48615a;
+  font-size: 0.92rem;
+  margin-top: 0.65rem;
+}
+.wind-map-unavailable {
+  background: #fff8e8;
+  color: #70551f;
+}
+.wind-map-unavailable p {
+  margin: 0.35rem 0 0;
+}
 @media (max-width: 900px) {
   .home-hero-banner img {
     height: clamp(11.25rem, 27vw, 14.375rem);
